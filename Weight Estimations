@@ -1,1 +1,12 @@
 # Ultumair
+import math #imports math functions
+import atmos #imports atmospheric data
+
+
+# for a given altitude it wil lfind the pressure and density  
+
+
+
+
+
+
