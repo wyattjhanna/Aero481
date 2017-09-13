@@ -1,1 +1,10 @@
-#Ultumair
+# Empty Weight Regression
+# Ultumair
+
+import math #imports math functions
+import numpy
+
+# -------------------------------------- #
+
+W_TO = numpy.array([73002, 99600, 99499, 91000, 103600])
+W_E  = numpy.array([41002, 60499, 57999, 54500, 60499]) 
