@@ -1,0 +1,81 @@
+clear all
+clc
+Wf = [15940 20049 20434 18733 21863] .*2.2;
+We = [41001 60499 59799 54500 60499];
+Wpl = 8*(180+60);
+Wcrew = (180+60)*3;
+
+Guess = [73000, 99600, 99498, 91000, 103599];
+WTO = 0;
+Wguess= Guess(1);
+
+%engine startup and warm up
+v1 = .99;
+%taxi 
+v2 = .995;
+%takeoff
+v3 = .995;
+%climb 
+v4 = .98;
+%cruise
+Rcruise  = [6395 7000 6000 7000 7500];
+Mcruise = [.8 .85 .85 .8 .85];
+LD = 10;
+cj = .65; 
+T = 273 - 56.5; %K
+a = sqrt(1.4*287*T);
+V = Mcruise.*a* 1.94384; %convert to knots
+v5 = 1./exp(Rcruise./((V./cj)*LD));
+%loiter
+LD = 12;
+cj = .5;
+time = 1; %hr
+v6 = 1/ (exp(time/((1/cj)*LD))); 
+%descent
+v7 = .99;
+%alternate
+V = 250; %knots
+v8 = 1/ (exp(time/((1/cj)*LD))); 
+%landing and shutdown
+v9 = .992;
+Mff = v1.*v2.*v3.*v4.*v5.*v6.*v7.*v8.*v9;
+wfwto = 1-Mff;
+%A = .90429138; %from python code%
+%B = .8579259; %from python code
+A = .26
+B =.99;
+We = zeros(1,5);
+
+for i =5
+
+    iter = 0;
+    while(WTO~=Wguess)
+        iter = iter+1;
+        if iter == 1
+            Wguess = Guess(i);
+            
+        else
+        Wguess = WTO;    
+        end
+                
+        We(i) = 10^((log10(Wguess)-A)/B);
+        
+        
+        ratio = We(i) / Wguess;
+        1-wfwto(i)-ratio;
+        
+        WTO = (Wpl+Wcrew) / (1-wfwto(i)-ratio)
+        if iter>10
+            WTO = Wguess;
+        else
+        end
+    end
+    WTO_final(i) = WTO;
+    
+end
+
+
+
+
+
+
