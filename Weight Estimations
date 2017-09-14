@@ -1,7 +1,11 @@
+# Initial Weight Estimation
 # Ultumair
-import math #imports math functions
-import atmos #imports atmospheric data
 
+import math  #imports math functions
+import numpy
+import atmos #imports atmospheric data   # for a given altitude it wil lfind the pressure and density 
 
-# for a given altitude it wil lfind the pressure and density  
+# --------------------------------------------------------
 
+int Person = 180 # Weight of a passenger or crew (including carry on) in pounds
+int Luggage = 60 # Weight of checked luggage per person
