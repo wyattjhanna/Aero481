@@ -32,4 +32,8 @@ Step3 = Step2.dot(Mt)
 
 A = Step3.dot(R)
 
-print(A)
+print("\n")
+print("A = ", A[0,0])
+print("\n")
+print("B = ", A[1,0])
+print("\n")
