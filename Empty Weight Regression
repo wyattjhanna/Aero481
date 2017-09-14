@@ -37,3 +37,37 @@ print("A = ", A[0,0])
 print("\n")
 print("B = ", A[1,0])
 print("\n")
+
+a = A[0,0]
+b = A[1,0]
+# Payload and crew weight
+W_pl = 8 * (180 + 60) #bags and 8 passengers
+W_cr = 3 * (180 + 60) #bags and 3 crew members
+# Estimated guess at gross take off weight
+W_TO_guess = 93000
+
+# Mission segment fuel fractions [Roskam]
+M_ff = numpy.matrix([0.99,0.995,0.995,0.98,0,0,0.99,0.992])
+
+# Cruise Range
+L_D = 12
+c_j = 0.5
+V = 573*0.85 # Speed of sound at 12000 m is 573 kts * 0.85 mach
+R_cr = 7000 # nmi
+W4_5 = math.exp(R_cr*c_j/V*(1/L_D))
+M_ff[0,4] = 1/W4_5
+# Loiter
+E_ltr = R_cr/V
+c_j = 0.4
+L_D = 14
+M_ff[0,5] = 1/(math.exp(E_ltr*c_j/L_D))
+
+M_fft = M_ff[0,0]*M_ff[0,1]*M_ff[0,2]*M_ff[0,3]*M_ff[0,4]*M_ff[0,5]*M_ff[0,6]*M_ff[0,7]
+Wf_WTO = 1 - M_fft
+#Solving the weight equation with values of pl cr wf/wto
+# Use guess take off weight and calculated a b values to get empty weight
+W_empty = (W_TO_guess**(b))*math.exp(-a/b)
+We_WTOguess = W_empty/W_TO_guess
+
+W_TO_iter = W_pl + W_cr / (1 - Wf_WTO - We_WTOguess)
+
