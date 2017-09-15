@@ -20,8 +20,8 @@ W_cr = 3*(180+60);
 W_TO_guess = sum(W_TO)/size(W_TO,1);
 W_TO_guess = 100000;
 
-lim = 0.0001; % limit for difference
-dif = 2*lim; % difference in interations
+lim = 0.000001; % limit for difference
+dif = 100; % difference in interations
 
 while dif > lim
 % Mission segment fuel fraction [Roskam]
@@ -59,12 +59,12 @@ Wf_WTO = 1-M_fff;
 %% Solve the weight equation
 We        = 10^((log10(W_TO_guess)-AB(1))/AB(2));
 We_WTO    = We/W_TO_guess;
-W_TO_iter = (W_cr+W_pl)/(1-Wf_WTO-We_WTO);
+W_TO_iter = abs((W_cr+W_pl)/(1-Wf_WTO-We_WTO));
 
 fprintf("Guess for W_TO %f \n", W_TO_guess);
 fprintf("Guess for W_E  %f \n", We);
 fprintf("Difference of  %f \n \n", dif);
 
 dif        = abs(W_TO_iter-W_TO_guess);
-W_TO_guess = abs(W_TO_iter);
+W_TO_guess = W_TO_iter;
 end
