@@ -11,18 +11,22 @@ R      = log10(W_TO);
 MT     = M';
 AB     = (MT*M)^-1*MT*R;
 
+AB = [.2678, .9979];
+
 %% Fuel Ratios
 W_pl = 8*(180+60);
 W_cr = 3*(180+60);
 
 W_TO_guess = sum(W_TO)/size(W_TO,1);
+W_TO_guess = 100000;
 
-lim = 10^-6; % limit for difference
+lim = 0.0001; % limit for difference
 dif = 2*lim; % difference in interations
 
 while dif > lim
 % Mission segment fuel fraction [Roskam]
-M_ff = [0.99 0.995 0.995 0.98 1 1 0.99 1 0.992]; % Warmup, Taxi, Takeoff, Climb, Cruise, Loiter, Descent, Alternative, Landing
+M_ff = [0.99 0.995 0.995 0.98 1 1 0.99 1 0.992]; 
+% Warmup, Taxi, Takeoff, Climb, Cruise, Loiter, Descent, Alternative, Landing
 
 % Cruise fuel fraction
 R_cr    = 7000; % Range (nmi)
@@ -55,8 +59,12 @@ Wf_WTO = 1-M_fff;
 %% Solve the weight equation
 We        = 10^((log10(W_TO_guess)-AB(1))/AB(2));
 We_WTO    = We/W_TO_guess;
-W_TO_iter = W_cr+W_pl+We+Wf_WTO*W_TO_guess;
+W_TO_iter = (W_cr+W_pl)/(1-Wf_WTO-We_WTO);
 
-dif        = abs(W_TO_iter-W_TO_guess)/abs(W_TO_iter)
-W_TO_guess = W_TO_iter
+fprintf("Guess for W_TO %f \n", W_TO_guess);
+fprintf("Guess for W_E  %f \n", We);
+fprintf("Difference of  %f \n \n", dif);
+
+dif        = abs(W_TO_iter-W_TO_guess);
+W_TO_guess = abs(W_TO_iter);
 end
