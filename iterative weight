@@ -1,81 +1,62 @@
-clear all
+clear
 clc
-Wf = [15940 20049 20434 18733 21863] .*2.2;
-We = [41001 60499 59799 54500 60499];
-Wpl = 8*(180+60);
-Wcrew = (180+60)*3;
+%% Regression of Data for A and B
+% Real Aircraft Data weights
+W_TO = [73002; 99600; 99499; 91000; 103600];
+W_E  = [41002; 60499; 57999; 54500; 60499];
+% Regressing Data
+M      = ones(5,2);
+M(:,2) = log10(W_E);
+R      = log10(W_TO);
+MT     = M';
+AB     = (MT*M)^-1*MT*R;
 
-Guess = [73000, 99600, 99498, 91000, 103599];
-WTO = 0;
-Wguess= Guess(1);
+%% Fuel Ratios
+W_pl = 8*(180+60);
+W_cr = 3*(180+60);
 
-%engine startup and warm up
-v1 = .99;
-%taxi 
-v2 = .995;
-%takeoff
-v3 = .995;
-%climb 
-v4 = .98;
-%cruise
-Rcruise  = [6395 7000 6000 7000 7500];
-Mcruise = [.8 .85 .85 .8 .85];
-LD = 10;
-cj = .65; 
-T = 273 - 56.5; %K
-a = sqrt(1.4*287*T);
-V = Mcruise.*a* 1.94384; %convert to knots
-v5 = 1./exp(Rcruise./((V./cj)*LD));
-%loiter
-LD = 12;
-cj = .5;
-time = 1; %hr
-v6 = 1/ (exp(time/((1/cj)*LD))); 
-%descent
-v7 = .99;
-%alternate
-V = 250; %knots
-v8 = 1/ (exp(time/((1/cj)*LD))); 
-%landing and shutdown
-v9 = .992;
-Mff = v1.*v2.*v3.*v4.*v5.*v6.*v7.*v8.*v9;
-wfwto = 1-Mff;
-%A = .90429138; %from python code%
-%B = .8579259; %from python code
-A = .26
-B =.99;
-We = zeros(1,5);
+W_TO_guess = sum(W_TO)/size(W_TO,1);
 
-for i =5
+lim = 10^-6; % limit for difference
+dif = 2*lim; % difference in interations
 
-    iter = 0;
-    while(WTO~=Wguess)
-        iter = iter+1;
-        if iter == 1
-            Wguess = Guess(i);
-            
-        else
-        Wguess = WTO;    
-        end
-                
-        We(i) = 10^((log10(Wguess)-A)/B);
-        
-        
-        ratio = We(i) / Wguess;
-        1-wfwto(i)-ratio;
-        
-        WTO = (Wpl+Wcrew) / (1-wfwto(i)-ratio)
-        if iter>10
-            WTO = Wguess;
-        else
-        end
-    end
-    WTO_final(i) = WTO;
-    
+while dif > lim
+% Mission segment fuel fraction [Roskam]
+M_ff = [0.99 0.995 0.995 0.98 1 1 0.99 1 0.992]; % Warmup, Taxi, Takeoff, Climb, Cruise, Loiter, Descent, Alternative, Landing
+
+% Cruise fuel fraction
+R_cr    = 7000; % Range (nmi)
+V_cr    = 573*0.85; % Speed of sound at 12600 m going cruising at mach 0.85
+cj_cr   = 0.5;
+LD_cr   = 15;
+M_ff(5) = 1/(exp(R_cr*cj_cr/(V_cr*LD_cr)));
+
+% Loiter fuel fraction
+E_ltr   = 1; % 1 hr
+cj_ltr  = 0.4;
+LD_ltr  = 14;
+M_ff(6) = 1/exp(E_ltr*cj_ltr/LD_ltr);
+
+% Alternative
+V_ltr   = 0.55*V_cr; % From slides example uses 55%
+cj_ltr  = 0.9;
+LD_alt  = 10;
+R_ltr   = 0.06*R_cr; % From slides example uses 6%
+M_ff(8) = 1/(exp(R_ltr*cj_ltr/(V_ltr*LD_ltr)));
+
+M_fff   = 1; % final fuel fraction
+i       = 1;
+while i <= 8
+    M_fff = M_fff*M_ff(i);
+    i = i+1;
 end
+Wf_WTO = 1-M_fff;
 
+%% Solve the weight equation
+We        = 10^((log10(W_TO_guess)-AB(1))/AB(2));
+We_WTO    = We/W_TO_guess;
+W_TO_iter = W_cr+W_pl+We+Wf_WTO*W_TO_guess;
 
-
-
-
-
+dif        = abs(W_TO_iter-W_TO_guess)/abs(W_TO_iter)
+W_TO_guess = W_TO_iter
+end
