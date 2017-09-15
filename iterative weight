@@ -29,9 +29,9 @@ M_ff = [0.99 0.995 0.995 0.98 1 1 0.99 1 0.992];
 % Warmup, Taxi, Takeoff, Climb, Cruise, Loiter, Descent, Alternative, Landing
 
 % Cruise fuel fraction
-R_cr    = 7000; % Range (nmi)
+R_cr    = 5000; % Range (nmi)
 V_cr    = 573*0.85; % Speed of sound at 12600 m going cruising at mach 0.85
-cj_cr   = 0.5;
+cj_cr   = 0.65;
 LD_cr   = 15;
 M_ff(5) = 1/(exp(R_cr*cj_cr/(V_cr*LD_cr)));
 
@@ -45,7 +45,7 @@ M_ff(6) = 1/exp(E_ltr*cj_ltr/LD_ltr);
 V_ltr   = 0.55*V_cr; % From slides example uses 55%
 cj_ltr  = 0.9;
 LD_alt  = 10;
-R_ltr   = 0.06*R_cr; % From slides example uses 6%
+R_ltr   = 200; % From slides example uses 6%
 M_ff(8) = 1/(exp(R_ltr*cj_ltr/(V_ltr*LD_ltr)));
 
 M_fff   = 1; % final fuel fraction
