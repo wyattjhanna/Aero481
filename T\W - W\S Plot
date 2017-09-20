@@ -1,0 +1,32 @@
+clc
+clear all
+%Values from table 2.1 student meta desing
+wpass = (180+60)*8;
+wcrew = (180+60)*3;
+r = 6750;
+M =.8;
+LD = 18;
+T = 15385; %per engine
+AR = 7.4;
+WtoWe = .83;
+MTOW = 91000;
+Sref = 1140; %wing area
+Clmax_to = 1.8;
+Clmax_land = 2.1;
+
+
+
+%need W/S
+
+%W/S = 0.5*rho*V^2*CL
+G = [1.3, .1, 2.5,  1.3, 3.3, 2.2];
+ks = [1.2, 1.15, 1.2, 1.25, 1.3, 1.5];
+Swet = 10^.2263*MTOW^.6977; %regression coefficients for exponents
+
+Cfe = .003;
+Cdo = Cfe*Swet/Sref;
+Cdo = [.015+.02, .015+.02, .015, 0, .065+.02,.065+.02]+Cdo;
+e = [.775 .775 .825 .825 .725 .725];
+Const = pi*AR.*e;
+CL = [1.8, 1.8, .9, .9, 2.1, 2.1]
+CD = Cdo + CL.^2./Const
