@@ -1,33 +1,83 @@
+%% Initialization
 clc
 clear all
 
-%Values from table 2.1 student meta desing
-wpass = (180+60)*8;     % Passenger Weight 
-wcrew = (180+60)*3;     % Crew Weight
-r = 6750;               % Aircraft Range
-M =.8;                  % Flight Mach number
-LD = 18;                
-T = 15385;              % Thrust PER ENGINE
-AR = 7.4;
-WtoWe = .83;
+%% Adjustable Parameters
+M =.8;                          % Flight Mach number
+Cruise_alt = 55000;             % ft
+
+Sland = 10000;                  % Landing Runway Length (ft)
 MTOW = 91000;
-Sref = 1140;            %wing area
+
+Sref = 1140;                    % Wing area (ft^2)
+AR = 7.4;                       % Aspect Ratio
+
 Clmax_to = 1.8;
 Clmax_land = 2.1;
 
-%need W/S
+%% Unused? (should be deleted eventually)
 
-%W/S = 0.5*rho*V^2*CL
-G =  [1.3,  .1,  2.5, 1.3,  3.3, 2.2];
-ks = [1.2, 1.15, 1.2, 1.25, 1.3, 1.5];
-%      1    2     3    4     5    6
+Passengers = 8;
+Crew = 3;
+
+r = 6750;                       % Aircraft Range
+
+LD = 18;                
+T = 15385;                      % Thrust PER ENGINE
+wpass = (180+60)*Passengers;    % Passenger Weight 
+wcrew = (180+60)*Crew;          % Crew Weight
+WtoWe = .83;
+
+%% Math Zone
+
+[p, P, T] = Standard_Atmosphere(Cruise_alt);
+
+p_cruise = p;
+V_cruise = M * sqrt(1.4*1716*T); % ft/s? 
 
 Swet = 10^.2263*MTOW^.6977; %regression coefficients for exponents
 
 Cfe = .003;
 Cdo = Cfe*Swet/Sref;
 Cdo = [.015+.02, .015+.02, .015, 0, .065+.02,.065+.02]+Cdo;
-e = [.775 .775 .825 .825 .725 .725];
+
+vector = ones(1,1001); % Makes somthing a 1001 long vector.
+
+G =  [1.3,   .1,  2.5,  1.3,  3.3,  2.2];
+ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
+e =  [ .775  .775  .825  .825  .725  .725];
+%      1     2     3     4     5     6       <- Climb #
+
 Const = pi*AR.*e;
-CL = [1.8, 1.8, .9, .9, 2.1, 2.1]
-CD = Cdo + CL.^2./Const
+CL = [1.8, 1.8, .9, .9, 2.1, 2.1];
+CD = Cdo + CL.^2./Const;
+
+TW = (0:.5/1000:.5);
+WS = (0:350/1000:350);
+
+p = 0.002176;        % Takeoff air density (slugs)
+p_sl = 0.0023769;    % air density at sea level (slugs)
+%% Landing field Length
+Sa = 1000; % number appropriate for airliners (ft) ???????????????????????????
+Landing = (((p./p_sl).*Clmax_land)./(80*.65)).*(Sland - Sa).*vector;
+
+%% Takeoff
+TOP = WS./((p./p_sl).*Clmax_to.*TW);
+Takeoff = WS./((p./p_sl).*Clmax_to.*TOP);
+
+%% CLimb
+
+%% Ceiling
+
+%% Cruise
+q = (1/2)*p_cruise*V_cruise^2;
+Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
+%% Ploting
+hold on
+plot(WS, Takeoff)
+plot(Landing, TW)
+plot(WS, Cruise)
+
+xlabel("W/S (lb/ft^2)")
+ylabel("T/W")
+axis([0,350,0,.5])
