@@ -1,6 +1,7 @@
 %% Initialization
 clc
 clear all
+close all
 
 %% Adjustable Parameters
 M =.8;                          % Flight Mach number
@@ -43,13 +44,13 @@ Cdo = [.015+.02, .015+.02, .015, 0, .065+.02,.065+.02]+Cdo;
 
 vector = ones(1,1001); % Makes somthing a 1001 long vector.
 
-G =  [1.3,   .1,  2.5,  1.3,  3.3,  2.2];
+G =  [1.3,   .1,  2.5,  1.3,  3.3,  2.2]/100;
 ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
 e =  [ .775  .775  .825  .825  .725  .725];
 %      1     2     3     4     5     6       <- Climb #
 
 Const = pi*AR.*e;
-CL = [1.8, 1.8, .9, .9, 2.1, 2.1];
+CL = [Clmax_to, Clmax_to, .9, .9, Clmax_land, Clmax_land];
 CD = Cdo + CL.^2./Const;
 
 TW = (0:.5/1000:.5);
@@ -58,7 +59,7 @@ WS = (0:350/1000:350);
 p = 0.002176;        % Takeoff air density (slugs)
 p_sl = 0.0023769;    % air density at sea level (slugs)
 %% Landing field Length
-Sa = 1000; % number appropriate for airliners (ft) ???????????????????????????
+Sa = 4956; % number appropriate for airliners (ft) ???????????????????????????
 Landing = (((p./p_sl).*Clmax_land)./(80*.65)).*(Sland - Sa).*vector;
 
 %% Takeoff
@@ -66,17 +67,29 @@ TOP = WS./((p./p_sl).*Clmax_to.*TW);
 Takeoff = WS./((p./p_sl).*Clmax_to.*TOP);
 
 %% CLimb
+Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*pi.*AR.*e)+G;
+Climb = Climb .* ones(1001,1);
+%Climb = WS./Climb(:)
 
 %% Ceiling
+Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4)));
 
 %% Cruise
 q = (1/2)*p_cruise*V_cruise^2;
 Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
 %% Ploting
+figure(1)
 hold on
 plot(WS, Takeoff)
 plot(Landing, TW)
 plot(WS, Cruise)
+plot(WS, Climb(:,1))
+plot(WS, Climb(:,2))
+plot(WS, Climb(:,3))
+plot(WS, Climb(:,4))
+plot(WS, Climb(:,5))
+plot(WS, Climb(:,6))
+plot(WS, Ceiling)
 
 xlabel("W/S (lb/ft^2)")
 ylabel("T/W")
