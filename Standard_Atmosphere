@@ -1,0 +1,70 @@
+% Calculates the temperature, pressure, and density of air up to 31km.
+% [Density(slugs/ft^3), Pressure(psi), Temperature(R)] = Standard_Atmosphere(altitude(ft))
+
+function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
+
+altitude = round(altitude/3.28084); % Converting ft to m
+
+heightm = [0:1:32000];
+tempK = zeros(1,32001);
+tempC = zeros(1,32001);
+pressureNM2 = zeros(1,32001);
+densityKGM3 = zeros(1,32001);
+pasttemp = 288.15;
+press0 = 101325;
+
+for H = 1:11000
+    nexttemp = pasttemp + (-6.5)/1000;
+    tempK(H) = pasttemp;
+    pasttemp = nexttemp;
+end
+
+for H = 11000:20000
+    tempK(H) = pasttemp;
+end
+
+for H = 20000:32001
+    nexttemp = pasttemp + (1)/1000;
+    tempK(H) = pasttemp;
+    pasttemp = nexttemp;
+end
+
+tempC = tempK - 273.15;
+
+% figure(1)
+% plot(heightm, tempC)
+% xlabel('Altitude (m)')
+% ylabel('Temperature (C)')
+% title('Temperature as a function of Altitude in the Earths Atmosphere')
+
+for H = 1:11000
+    pressureNM2(H) = press0 * (288.15 /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * -0.0065));
+end
+
+for H = 11000:20000
+    pressureNM2(H) = pressureNM2(11000) * exp(-9.81 * 0.0289644 * (H - 11000)/ (8.31432 * tempK(11000)));
+end
+
+for H = 20000:32001
+    pressureNM2(H) = pressureNM2(20000) * (tempK(20000) /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * 0.001));
+end
+
+% figure(2)
+% plot(heightm,pressureNM2)
+% xlabel('Altitude (m)')
+% ylabel('Pressure (N/m2)')
+% title('Pressure as a function of Altitude in the Earths Atmosphere')
+
+for H = 1:32000
+densityKGM3(H) = (0.0289644 * pressureNM2(H))/(8.31432 * tempK(H));
+end
+
+Density     = densityKGM3(altitude)*0.0019403203; % density in slugs/ft^3
+Pressure    = pressureNM2(altitude)* 0.000145038; % pressure in psi
+Temperature = tempK(altitude)* 1.8; % temperature in R
+
+% figure(3)
+% plot(heightm,densityKGM3)
+% xlabel('Altitude (m)')
+% ylabel('density (kg/m3)')
+% title('Density as a function of Altitude in the Earths Atmosphere')
