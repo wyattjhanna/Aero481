@@ -1,14 +1,14 @@
 %% Initialization
 clc
-clear
+clear all
 close all
 
 %% Adjustable Parameters
 M =.8;                          % Flight Mach number
 Cruise_alt = 55000;             % ft
 
-Sland = 4956;                   % Landing Runway Length (ft)
-MTOW = 91000;                   % Takeoff Weight
+Sland = 4956;                  % Landing Runway Length (ft)
+MTOW = 91000;
 
 Sref = 1140;                    % Wing area (ft^2)
 AR = 7.4;                       % Aspect Ratio
@@ -18,8 +18,15 @@ Clmax_land = 2.1;
 
 %% Unused? (should be deleted eventually)
 
+Passengers = 8;
+Crew = 3;
+
 r = 6750;                       % Aircraft Range
+
 LD = 18;                
+T = 15385;                      % Thrust PER ENGINE
+wpass = (180+60)*Passengers;    % Passenger Weight 
+wcrew = (180+60)*Crew;          % Crew Weight
 WtoWe = .83;
 
 %% Math Zone
@@ -67,17 +74,18 @@ Takeoff = WS./((p./p_sl).*Clmax_to.*TOP);
 Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*pi.*AR.*e)+G;
 Climb = Climb .* ones(1001,1);
 Cor = (1/.8)*(1/.94)*(2);
-TWConvert = [M_ff(1)*M_ff(2)                            %1
-             M_ff(1)*M_ff(2)                            %2
-             M_ff(1)*M_ff(2)                            %3
-             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)            %4
-             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)    %5
+TWConvert = [M_ff(1)*M_ff(2)                 %1
+             M_ff(1)*M_ff(2)                  %2
+             M_ff(1)*M_ff(2)                  %3
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)   %4
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)   %5
              M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)]'; %6
 
 Climb = Climb .* Cor .* TWConvert;
                   
+
 %% Ceiling
-Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4))) .* vector;
+Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4)))*vector;
 
 %% Cruise
 q = (1/2)*p_cruise*V_cruise^2;
@@ -119,7 +127,7 @@ plot(Landing, TW, 'k')
 
 plot(WS, Cruise,'r')
 
-    i = round(numel(WS)/1.3);
+    i = round(numel(WS)/8);
 
     % Get the local slope
     d = (Cruise(i+1)-Cruise(i))/(WS(i+1)-WS(i));
@@ -142,9 +150,16 @@ text(WS(400), Climb(400, 4), 'Climb 4', 'BackgroundColor', 'w', 'color', '[.5 0 
 plot(WS, Climb(:,5), 'color', '[.2 .2 .8]')
 text(WS(600), Climb(600, 5) - .005, 'Climb 5', 'BackgroundColor', 'w', 'color', '[.2 .2 .8]');
 plot(WS, Climb(:,6), 'color', '[.8 .2 .2]')
-text(WS(200), Climb(200, 6), 'Climb 6', 'BackgroundColor', 'w', 'color', '[.8 .2 .2]');
+text(WS(500), Climb(500, 6), 'Climb 6', 'BackgroundColor', 'w', 'color', '[.8 .2 .2]');
 plot(WS, Ceiling, 'color', '[.2 .8 .2]')
 text(WS(600), Ceiling(600), 'Ceiling', 'BackgroundColor', 'w', 'color', '[.2 .8 .2]');
+
+
+area(WS, max(Cruise, Climb(1,6)),.5,  'EdgeColor', 'none', 'FaceColor', [1 1 1]);
+area(min(WS, Landing), max(Cruise, Climb(1,6)) ,.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
+
+plot(110.1, .3709, 'k+', 'LineWidth', 2);
+text(100, .38, 'Design Point');
 
 xlabel("W/S (lb/ft^2)")
 ylabel("T/W")
