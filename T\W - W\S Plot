@@ -1,14 +1,14 @@
 %% Initialization
 clc
-clear all
+clear
 close all
 
 %% Adjustable Parameters
-M =.8;                          % Flight Mach number
+M =.85;                         % Flight Mach number
 Cruise_alt = 55000;             % ft
 
-Sland = 4956;                  % Landing Runway Length (ft)
-MTOW = 91000;
+Sland = 4956;                   % Landing Runway Length (ft)
+MTOW = 91000;                   % Takeoff Weight
 
 Sref = 1140;                    % Wing area (ft^2)
 AR = 7.4;                       % Aspect Ratio
@@ -18,15 +18,8 @@ Clmax_land = 2.1;
 
 %% Unused? (should be deleted eventually)
 
-Passengers = 8;
-Crew = 3;
-
 r = 6750;                       % Aircraft Range
-
 LD = 18;                
-T = 15385;                      % Thrust PER ENGINE
-wpass = (180+60)*Passengers;    % Passenger Weight 
-wcrew = (180+60)*Crew;          % Crew Weight
 WtoWe = .83;
 
 %% Math Zone
@@ -64,28 +57,27 @@ M_ff = [0.99   0.995 0.995   0.98  0.692  0.9753 0.99    0.9606      0.992];
 
 %% Landing field Length
 Sa = 800; % intermediate value between airliners and general aviation
-Landing = (((p./p_sl).*Clmax_land)./(80*.65)).*(Sland - Sa).*vector;
+Landing = (((p./p_sl).*Clmax_land)./(80*.65)).*(Sland*.6 - Sa).*vector;
 
 %% Takeoff
-TOP = WS./((p./p_sl).*Clmax_to.*TW);
+TOP = Sland/37.5;
 Takeoff = WS./((p./p_sl).*Clmax_to.*TOP);
 
 %% CLimb
 Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*pi.*AR.*e)+G;
 Climb = Climb .* ones(1001,1);
 Cor = (1/.8)*(1/.94)*(2);
-TWConvert = [M_ff(1)*M_ff(2)                 %1
-             M_ff(1)*M_ff(2)                  %2
-             M_ff(1)*M_ff(2)                  %3
-             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)   %4
-             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)   %5
+TWConvert = [M_ff(1)*M_ff(2)                            %1
+             M_ff(1)*M_ff(2)                            %2
+             M_ff(1)*M_ff(2)                            %3
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)            %4
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)    %5
              M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)]'; %6
 
 Climb = Climb .* Cor .* TWConvert;
                   
-
 %% Ceiling
-Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4)))*vector;
+Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4))) .* vector;
 
 %% Cruise
 q = (1/2)*p_cruise*V_cruise^2;
