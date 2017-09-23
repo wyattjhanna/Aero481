@@ -8,19 +8,13 @@ M =.85;                         % Flight Mach number
 Cruise_alt = 55000;             % ft
 
 Sland = 4956;                   % Landing Runway Length (ft)
-MTOW = 91000;                   % Takeoff Weight
+MTOW = 86703;                   % Takeoff Weight
 
 Sref = 1140;                    % Wing area (ft^2)
 AR = 7.4;                       % Aspect Ratio
 
 Clmax_to = 1.8;
 Clmax_land = 2.1;
-
-%% Unused? (should be deleted eventually)
-
-r = 6750;                       % Aircraft Range
-LD = 18;                
-WtoWe = .83;
 
 %% Math Zone
 
@@ -82,8 +76,8 @@ Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4))) .* vector;
 %% Cruise
 q = (1/2)*p_cruise*V_cruise^2;
 Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
-ThrustScale = (4.1769e-3 / p_cruise)^.6;   % Thrust Scaling Factor
-Cruise = Cruise .* ThrustScale .* M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4);
+ThrustScale = (p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
+Cruise = Cruise .* ThrustScale .*(M_ff(1)* M_ff(2)* M_ff(3)* M_ff(4));
 
 %% Ploting
 figure(1)
@@ -146,8 +140,6 @@ text(WS(500), Climb(500, 6), 'Climb 6', 'BackgroundColor', 'w', 'color', '[.8 .2
 plot(WS, Ceiling, 'color', '[.2 .8 .2]')
 text(WS(600), Ceiling(600), 'Ceiling', 'BackgroundColor', 'w', 'color', '[.2 .8 .2]');
 
-
-area(WS, max(Cruise, Climb(1,6)),.5,  'EdgeColor', 'none', 'FaceColor', [1 1 1]);
 area(min(WS, Landing), max(Cruise, Climb(1,6)) ,.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
 
 plot(Landing(1,1), Climb(1,6), 'k+', 'LineWidth', 2);
