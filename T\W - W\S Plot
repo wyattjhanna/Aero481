@@ -150,8 +150,8 @@ text(WS(600), Ceiling(600), 'Ceiling', 'BackgroundColor', 'w', 'color', '[.2 .8 
 area(WS, max(Cruise, Climb(1,6)),.5,  'EdgeColor', 'none', 'FaceColor', [1 1 1]);
 area(min(WS, Landing), max(Cruise, Climb(1,6)) ,.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
 
-plot(110.1, .3709, 'k+', 'LineWidth', 2);
-text(100, .38, 'Design Point');
+plot(Landing(1,1), Climb(1,6), 'k+', 'LineWidth', 2);
+text(Landing(1,1)+4, Climb(1,6)+.005, 'Design Point');
 
 xlabel("W/S (lb/ft^2)")
 ylabel("T/W")
