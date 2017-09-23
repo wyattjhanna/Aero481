@@ -148,3 +148,35 @@ text(Landing(1,1)+4, Climb(1,6)+.005, 'Design Point');
 xlabel("W/S (lb/ft^2)")
 ylabel("T/W")
 axis([0,350,0,.5])
+
+%% Drag Polar Plot 
+%Raymer for a business jet 
+WS = 110; %CORRECT THIS BASED ON OUR DESIGN POINT
+Cf = 0.003;
+f = Cf*Swet;
+S = MTOW/WS;
+CDoClean = f/S;
+eClean = 0.825;
+CDoTOFup = CDoClean + 0.10;
+CDoTOFdown = CDoClean + 0.10 + 0.015;
+eTOF = 0.7725;
+CDoLFup = CDoClean + 0.055;
+CDoLFdown = CDoClean + 0.055 + 0.015;
+eLF = 0.7225;
+
+CL = -2:0.005:2;
+CDClean = CDoClean + CL.^2./(pi*AR*eClean);
+CDTOFup = CDoTOFup + CL.^2./(pi*AR*eTOF);
+CDTOFdown = CDoTOFdown + CL.^2./(pi*AR*eTOF);
+CDLFup = CDoLFup + CL.^2./(pi*AR*eLF);
+CDLFdown = CDoLFdown + CL.^2./(pi*AR*eLF);
+
+figure 
+hold on 
+plot(CDClean,CL)
+plot(CDTOFup, CL)
+plot(CDTOFdown, CL)
+plot(CDLFup, CL)
+plot(CDLFdown, CL)
+xlabel('CL')
+ylabel('CD')
