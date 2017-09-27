@@ -8,7 +8,7 @@ M =.85;                         % Flight Mach number
 Cruise_alt = 55000;             % ft
 
 Sland = 4956;                   % Landing Runway Length (ft)
-MTOW = 86703;                   % Takeoff Weight
+MTOW = 74171;                   % Takeoff Weight (lbs)
 
 Sref = 1140;                    % Wing area (ft^2)
 AR = 7.4;                       % Aspect Ratio
@@ -94,11 +94,11 @@ plot(WS, Takeoff, 'b')
     a = atan(d*p(2)*X/p(1)/Y)*180/pi;
 
     % Display the text
-    text(WS(i), Takeoff(i), 'Takeoff', 'BackgroundColor', 'w', 'color', 'b', 'rotation', a);
+    text(WS(i), Takeoff(i), 'Takeoff', 'BackgroundColor', 'w', 'color', 'b', 'rotation', a*2);
 
 plot(Landing, TW, 'k')
 
-    i = round(numel(Landing)/1.5);
+    i = round(numel(Landing)/1.5)-500;
 
     % Get the local slope
     d = (TW(i+1)-TW(i))/(Landing(i+1)-Landing(i));
