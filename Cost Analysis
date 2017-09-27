@@ -1,0 +1,62 @@
+%Current year costs in USD
+
+%Assuming this business jet will be sold in 10 years
+byear = 2017;
+tyear = 2027;
+bCEF = 5.17053 + 0.104981*(byear - 2006);
+tCEF = 5.17053 + 0.104981*(tyear - 2006);
+CEF = tCEF/bCEF;
+
+%Crew cost&block time 
+range = 5200; %[nmi]
+speed = 573*0.85; %[nmi/hr]
+tBlock = range/speed; %[hr]
+MTOW = 74171; %lbs
+Ccrew = (482 + 0.590*(MTOW/1000))*CEF*tBlock;
+%Attendants 
+Cattend = 78*1*CEF*tBlock;
+
+%Fuel density[lb/gal] (average Jet-A fuel density)
+rhoFuel = 6.7389141;
+%Fuel price [USD/gal]
+Pfuel = 4.31; %Avg price nationwide on Sept 16, 2017 from AirNav
+%Fuel cost
+Wfuel = 32418; %lbs
+Cfuel = 1.02*Wfuel*Pfuel/rhoFuel; 
+%Oil 
+Woil = 0.0125*Wfuel*tBlock/100;
+Poil = 16.95*4; %price in gal (from aircraft spruce)
+%mobil jet oil ll
+rhoOil = 8.375; 
+Coil = 1.02*Woil*Poil/rhoOil;
+
+%Airport Fees
+Cairport = 4.25*MTOW/1000*CEF;
+%Navigation Fees
+Cnav = 0.5*CEF*1.852*range/tBlock*sqrt(0.0045359237*MTOW/50);
+
+%Airframe Maintenance
+
+%Aircraft price [USD]
+MEmpty = 51645; %lbs
+AircraftPrice = 800*MEmpty; %Based on Raymer [Ch. 18, pg 707]
+Caircraft = 10^(3.3191 + 0.8043*log10(MTOW))*CEF;
+Cengine = 10^(2.3044 + 0.8858*log10(MTOW))*CEF;
+Cairframe = Caircraft-Cengine;
+%Labor Rate [USD/hr]
+RL = 29.42;
+Wampr = MTOW;
+CafML = 1.03*(3+0.067*Wampr/1000)*RL;
+CafMM = 1.03*(30*CEF)+ 0.79*10^(-5)*Cairframe;
+CafMain = (CafML + CafMM)*tBlock;
+%Engine maintenance 
+To = 16100; %lbs
+CeML = (0.645 + (0.05*To/10^4))*(0.566 + 0.434/tBlock)*RL;
+CeMM = (25 + (18*To/10^4))*(0.62 + 0.38/tBlock)*CEF;
+nEngines = 2;
+CeMain = nEngines*(CeML + CeMM)*tBlock;
+
+%No. of Passengers 
+COC = Ccrew + Cattend + Cfuel + Coil + Cairport + Cnav + CafMain + CeMain
+%Range [nmi]
+COC/pax-nmi 
