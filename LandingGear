@@ -1,0 +1,66 @@
+clear
+clc
+
+% Inputs
+AoA90 = 7;
+Wa = 74171; % Aircraft Weight
+CM = [455+102 0 44];
+Strut = [0 0 0];
+% Wheel Dimensions (in)
+Wd = 2.69*Wa^0.251; % Diameter
+Ww = 1.17*Wa^0.216; % Width 
+
+% MapPart = [x location, y location]
+MapPart = [CM(1), CM(2), CM(3);
+    1102, 0 ,65; % Tail End
+    659 0 0]; % Tail Start
+scatter3(MapPart(:,1)/12,MapPart(:,2)/12,MapPart(:,3)/12)
+
+% Distributed weight that will be place on the nose wheel
+% and the main wheels. Using the Center of mass for each component
+% The location of the landing gear along the X direction is
+% calculated so that 90% of the weight is on the main landing
+% gear and 10% is on the nose. Also will give possible x positions
+% for acceptable weight distributions
+
+% Nose gear weight between 5%-20%
+% Main gear weight between 95%-80%
+
+% Weights [lbs]
+Cockpit = 6196;
+Fuselage = 24786;
+Wing = 9080;
+Engines = 9108;
+Tail = 25000;
+
+% Weight Distribution
+Wdist = zeros(1,1102);
+Wdist(1:200) = Cockpit./200;
+Wdist(201:705) = Fuselage./504;
+Wdist(337:705) = Wdist(337:705) + Wing./368;
+Wdist(706:838) = Wdist(706:838) + Engines./132;
+Wdist(706:1102) = Tail./396;
+
+Mt = Engines(1) + Wing(1) + Tail(1) + Fuselage(1) + Cockpit(1);
+Mm = Mt*[0.9 0.95 0.8]; % Main gear
+Mn = Mt*[0.1 0.05 0.2]; % Nose gear
+
+xngloc = [0 0 0];
+xmgloc = [0 0 0];
+
+for j = 1:3
+    dw = 0;
+    i = 1;
+    while dw < Mn(j)
+        dw = Wdist(i)+dw;
+        i = i+1;
+    end
+    xngloc(j) = i/2;
+    xmgloc(j) = (1102-i)/2;
+end
+
+% Determine the minimum strut length needed at the given X location
+
+atail = 10.8; % tail angle
+heightOfFuselage = (1102-xmgloc(1))*tand(atail);
+minStrutLength = heightOfFuselage - 115.15;
