@@ -1,0 +1,28 @@
+%% T-S
+WSt = WS';
+C1 = [WSt, Climb(:,1)];
+C2 = [WSt, Climb(:,2)];
+C3 = [WSt, Climb(:,3)];
+C4 = [WSt, Climb(:,4)];
+C5 = [WSt, Climb(:,5)];
+C6 = [WSt, Climb(:,6)];
+Ceil = [WSt; Ceiling'];
+Lan  = [Landing; TW];
+To   = [WSt; Takeoff'];
+
+lines = [C1, C2, C3, C4, C5, C6, Ceil, Lan, To];
+
+T = 18920; % 17745 range for max
+S = 600:1:1600;
+for n = 1:9
+    for i=1:length(S)
+    S0 = S(i);
+    Tnew = T;
+    dt = 0.1;
+    converge = 0;
+    while converge == 0
+        converge = 1;
+    end
+    end
+
+end
