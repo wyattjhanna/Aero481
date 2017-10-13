@@ -76,7 +76,7 @@ Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4))) .* vector;
 %% Cruise
 q = (1/2)*p_cruise*V_cruise^2;
 Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
-ThrustScale = (p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
+ThrustScale = .55*(p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
 Cruise = Cruise .* ThrustScale .*(M_ff(1)* M_ff(2)* M_ff(3)* M_ff(4));
 
 %% Ploting
@@ -242,8 +242,8 @@ for i = 1:length(Surface)
 end
 
 % Takeoff
-Thrust = linspace(0,100000,1001);
-% Landing
+Thrust = linspace(1,100000,1001);
+
 Snew = 908.67;
 for i = 1:length(Thrust)
     T = Thrust(i);
@@ -303,5 +303,6 @@ LD = CL./CDClean;
 
 figure(3)
 hold on
-plot(Surface,C,Surface,Cr,Slan,Tlan,STO,TTO)
+plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',STO,TTO,'m','LineWidth',1)
 axis([146,1600, 0, 70000])
+legend("Climb 1", "Climb 2", "Climb 3", "Climb 4", "Climb 5", "Climb 6", "Ceiling", "Cruise", "Landing", "Takeoff")
