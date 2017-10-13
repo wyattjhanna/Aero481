@@ -79,7 +79,7 @@ Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
 ThrustScale = .55*(p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
 Cruise = Cruise .* ThrustScale .*(M_ff(1)* M_ff(2)* M_ff(3)* M_ff(4));
 
-%% Ploting
+%% Plotting
 figure(1)
 hold on
 plot(WS, Takeoff, 'b')
@@ -150,8 +150,8 @@ ylabel('T/W')
 axis([0,350,0,.5])
 
 %% Drag Polar Plot 
-%Raymer for a business jet 
-ws = 110; %CORRECT THIS BASED ON OUR DESIGN POINT
+%Raymr for a business jet 
+ws = 80.6; 
 Cf = 0.003;
 f = Cf*Swet;
 S = MTOW/ws;
@@ -225,7 +225,7 @@ for i = 1:length(Surface)
         xold = 1000;
         for j = 1:length(WS)
             x = abs(WS(j)-W0S0);
-            if xold < x
+            if xold > x
                 TWnew = TWWS(2,j);
             else
                 xold = x;
@@ -242,7 +242,7 @@ for i = 1:length(Surface)
 end
 
 % Takeoff
-Thrust = linspace(1,100000,1001);
+Thrust = linspace(1000,100000,1001);
 
 Snew = 908.67;
 for i = 1:length(Thrust)
@@ -253,10 +253,10 @@ for i = 1:length(Thrust)
         W0 = WeightEstimate(Sur(i),T);
         T0W0 = T/W0;
         %WSnew = ;
-        xold = 1000;
+        xold = .05;
         for j = 1:length(Takeoff)
             x = abs(Takeoff(j)-T0W0);
-            if xold < x
+            if xold > x
                 WSnew = WS(j);
             else
                 xold = x;
@@ -269,9 +269,10 @@ for i = 1:length(Thrust)
             Sur(i) = Snew;
         end
     end
+    WeightEstimate(Sur(i),T)
 end
-TTO = Thrust;
-STO = Sur;
+ TTO = Thrust;
+ STO = Sur;
 Thrust = linspace(0,100000,1001);
 % Landing
 Snew = 908.67;
@@ -297,12 +298,15 @@ LD = CL./CDClean;
 % A = linspace(75, 1600,1526);
 % B = linspace(0, 10000,1526);
 % [A, B] = meshgrid(A,B);
-% 
-% Cd0TS = Cf.*Swet./A;
-% CDTS = Cd0TS+CL.^2./(pi().*AR.*eClean);
+
+%Cd0TS = Cf.*Swet./A;
+%CDTS = Cd0TS+CL.^2./(pi().*AR.*eClean);
 
 figure(3)
 hold on
 plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',STO,TTO,'m','LineWidth',1)
-axis([146,1600, 0, 70000])
+%plot(Surface,C,Surface,Cr,'k',STO,TTO,'m','LineWidth',1)
+axis([146,1600, 0, 50000])
 legend("Climb 1", "Climb 2", "Climb 3", "Climb 4", "Climb 5", "Climb 6", "Ceiling", "Cruise", "Landing", "Takeoff")
+xlabel('S [ft^2]')
+ylabel('T [lb]')
