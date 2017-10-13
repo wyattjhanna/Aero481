@@ -1,28 +1,307 @@
-%% T-S
-WSt = WS';
-C1 = [WSt, Climb(:,1)];
-C2 = [WSt, Climb(:,2)];
-C3 = [WSt, Climb(:,3)];
-C4 = [WSt, Climb(:,4)];
-C5 = [WSt, Climb(:,5)];
-C6 = [WSt, Climb(:,6)];
-Ceil = [WSt; Ceiling'];
-Lan  = [Landing; TW];
-To   = [WSt; Takeoff'];
+%% Initialization
+clc
+clear
+close all
 
-lines = [C1, C2, C3, C4, C5, C6, Ceil, Lan, To];
+%% Adjustable Parameters
+M =.85;                         % Flight Mach number
+Cruise_alt = 55000;             % ft
 
-T = 18920; % 17745 range for max
-S = 600:1:1600;
-for n = 1:9
-    for i=1:length(S)
-    S0 = S(i);
-    Tnew = T;
-    dt = 0.1;
-    converge = 0;
-    while converge == 0
-        converge = 1;
+Sland = 4956;                   % Landing Runway Length (ft)
+MTOW = 74171;                   % Takeoff Weight (lbs)
+
+Sref = 1140;                    % Wing area (ft^2)
+AR = 7.4;                       % Aspect Ratio
+
+Clmax_to = 1.8;
+Clmax_land = 2.1;
+
+%% Math Zone
+
+[p, P, T] = Standard_Atmosphere(Cruise_alt);
+
+p_cruise = p;
+V_cruise = M * sqrt(1.4*1716*T); % ft/s? 
+
+Swet = 10^.2263*MTOW^.6977; %regression coefficients for exponents
+
+Cfe = .003;
+Cdo = Cfe*Swet/Sref;
+Cdo = [.015+.02, .015+.02, .015, 0, .065+.02,.065+.02]+Cdo;
+
+vector = ones(1,1001); % Makes somthing a 1001 long vector.
+
+G =  [1.3,   .1,  2.5,  1.3,  3.3,  2.2]/100;
+ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
+e =  [ .775  .775  .825  .825  .725  .725];
+%      1     2     3     4     5     6       <- Climb #
+
+Const = pi*AR.*e;
+CL = [Clmax_to, Clmax_to, .9, .9, Clmax_land, Clmax_land];
+CD = Cdo + CL.^2./Const;
+
+TW = (0:.5/1000:.5);
+WS = (0:350/1000:350);
+
+p = 0.002176;        % Takeoff air density (slugs)
+p_sl = 0.0023769;    % air density at sea level (slugs)
+
+M_ff = [0.99   0.995 0.995   0.98  0.692  0.9753 0.99    0.9606      0.992]; 
+%       Warmup Taxi  Takeoff Climb Cruise Loiter Descent Alternative Landing
+
+%% Landing field Length
+Sa = 800; % intermediate value between airliners and general aviation
+Landing = (((p./p_sl).*Clmax_land)./(80*.65)).*(Sland*.6 - Sa).*vector;
+
+%% Takeoff
+TOP = Sland/37.5;
+Takeoff = WS./((p./p_sl).*Clmax_to.*TOP);
+
+%% CLimb
+Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*pi.*AR.*e)+G;
+Climb = Climb .* ones(1001,1);
+Cor = (1/.8)*(1/.94)*(2);
+TWConvert = [M_ff(1)*M_ff(2)                            %1
+             M_ff(1)*M_ff(2)                            %2
+             M_ff(1)*M_ff(2)                            %3
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)            %4
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)    %5
+             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)]'; %6
+
+Climb = Climb .* Cor .* TWConvert;
+                  
+%% Ceiling
+Ceiling = 2*sqrt(Cdo(4)/(pi*AR*e(4))) .* vector;
+
+%% Cruise
+q = (1/2)*p_cruise*V_cruise^2;
+Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
+ThrustScale = (p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
+Cruise = Cruise .* ThrustScale .*(M_ff(1)* M_ff(2)* M_ff(3)* M_ff(4));
+
+%% Ploting
+figure(1)
+hold on
+plot(WS, Takeoff, 'b')
+
+    i = round(numel(WS)/1.5)-530;
+
+    % Get the local slope
+    d = (Takeoff(i+1)-Takeoff(i))/(WS(i+1)-WS(i));
+    X = diff(get(gca, 'xlim'));
+    Y = diff(get(gca, 'ylim'));
+    p = pbaspect;
+    a = atan(d*p(2)*X/p(1)/Y)*180/pi;
+
+    % Display the text
+    text(WS(i), Takeoff(i), 'Takeoff', 'BackgroundColor', 'w', 'color', 'b', 'rotation', a*2);
+
+plot(Landing, TW, 'k')
+
+    i = round(numel(Landing)/1.5)-500;
+
+    % Get the local slope
+    d = (TW(i+1)-TW(i))/(Landing(i+1)-Landing(i));
+    X = diff(get(gca, 'xlim'));
+    Y = diff(get(gca, 'ylim'));
+    p = pbaspect;
+    a = atan(d*p(2)*X/p(1)/Y)*180/pi;
+
+    % Display the text
+    text(Landing(i), TW(i), 'Landing', 'BackgroundColor', 'w', 'color', 'k', 'rotation', a);
+
+
+plot(WS, Cruise,'r')
+
+    i = round(numel(WS)/8);
+
+    % Get the local slope
+    d = (Cruise(i+1)-Cruise(i))/(WS(i+1)-WS(i));
+    X = diff(get(gca, 'xlim'));
+    Y = diff(get(gca, 'ylim'));
+    p = pbaspect;
+    a = atan(d*p(2)*X/p(1)/Y)*180/pi;
+
+    % Display the text
+    text(WS(i), Cruise(i), 'Cruise', 'BackgroundColor', 'w', 'color', 'r');% 'rotation', a);
+
+plot(WS, Climb(:,1), 'g')
+text(WS(100), Climb(100, 1), 'Climb 1', 'BackgroundColor', 'w', 'color', 'g');
+plot(WS, Climb(:,2), 'm')
+text(WS(100), Climb(180, 2), 'Climb 2', 'BackgroundColor', 'w', 'color', 'm');
+plot(WS, Climb(:,3), 'color', '[1 .5 0]')
+text(WS(300), Climb(300, 3), 'Climb 3', 'BackgroundColor', 'w', 'color', '[1 .5 0]');
+plot(WS, Climb(:,4), 'color', '[.5 0 1]')
+text(WS(400), Climb(400, 4), 'Climb 4', 'BackgroundColor', 'w', 'color', '[.5 0 1]');
+plot(WS, Climb(:,5), 'color', '[.2 .2 .8]')
+text(WS(600), Climb(600, 5) - .001, 'Climb 5', 'BackgroundColor', 'w', 'color', '[.2 .2 .8]');
+plot(WS, Climb(:,6), 'color', '[.8 .2 .2]')
+text(WS(400), Climb(500, 6), 'Climb 6', 'BackgroundColor', 'w', 'color', '[.8 .2 .2]');
+plot(WS, Ceiling, 'color', '[.2 .8 .2]')
+text(WS(600), Ceiling(600), 'Ceiling', 'BackgroundColor', 'w', 'color', '[.2 .8 .2]');
+
+area(min(WS, Landing), max(Cruise, Climb(1,6)) ,.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
+
+plot(Landing(1,1), Climb(1,6), 'k+', 'LineWidth', 2);
+text(Landing(1,1)+4, Climb(1,6)+.005, 'Design Point');
+
+xlabel('W/S (lb/ft^2)')
+ylabel('T/W')
+axis([0,350,0,.5])
+
+%% Drag Polar Plot 
+%Raymer for a business jet 
+ws = 110; %CORRECT THIS BASED ON OUR DESIGN POINT
+Cf = 0.003;
+f = Cf*Swet;
+S = MTOW/ws;
+CDoClean = f/S;
+eClean = 0.825;
+CDoTOFup = CDoClean + 0.10;
+CDoTOFdown = CDoClean + 0.10 + 0.015;
+eTOF = 0.7725;
+CDoLFup = CDoClean + 0.055;
+CDoLFdown = CDoClean + 0.055 + 0.015;
+eLF = 0.7225;
+
+CL = -2:0.005:2;
+CDClean = CDoClean + CL.^2./(pi*AR*eClean);
+CDTOFup = CDoTOFup + CL.^2./(pi*AR*eTOF);
+CDTOFdown = CDoTOFdown + CL.^2./(pi*AR*eTOF);
+CDLFup = CDoLFup + CL.^2./(pi*AR*eLF);
+CDLFdown = CDoLFdown + CL.^2./(pi*AR*eLF);
+
+figure 
+hold on 
+plot(CDClean,CL)
+plot(CDTOFup, CL)
+plot(CDTOFdown, CL)
+plot(CDLFup, CL)
+plot(CDLFdown, CL)
+xlabel('CD')
+ylabel('CL')
+legend('Clean','T0 - F Up', 'TO - F Down', 'L - F Up', 'L - F Down')
+
+
+%% TS
+Climb = Climb';
+TWWS = [Takeoff;Cruise];
+
+ClimbCoe = [0.3487, 0.3189, 0.2773, 0.1782, 0.3644, 0.3677, 0.0481];
+
+Tnew = 17745*2;
+Surface = 75:1:1600;
+dt = 0.1;
+%Climbs
+for n = 1:7
+    for i = 1:length(Surface)
+        Swing = Surface(i);
+        converge = 0;
+        Thrust(i) = Tnew;
+        while converge == 0
+            W0 = WeightEstimate(Swing,Thrust(i));
+            TWnew = ClimbCoe(n);
+            Tnew = TWnew.*W0;
+            if abs(Thrust(i)-Tnew) < dt
+                converge = 1;
+            else
+                Thrust(i) = Tnew;
+            end
+        end
     end
-    end
-
+    C(n,:)= Thrust;
 end
+
+%Cruise
+    
+for i = 1:length(Surface)
+    Tnew = 17745*2;
+    Swing = Surface(i);
+    converge = 0;
+    Cr(i) = Tnew;
+    while converge == 0
+        W0 = WeightEstimate(Swing,Cr(i));
+        W0S0 = W0/Swing; 
+        xold = 1000;
+        for j = 1:length(WS)
+            x = abs(WS(j)-W0S0);
+            if xold < x
+                TWnew = TWWS(2,j);
+            else
+                xold = x;
+            end
+        end
+        Tnew = TWnew.*W0;
+
+        if abs(Cr(i)-Tnew) < dt
+            converge = 1;
+        else
+            Cr(i) = Tnew;
+        end
+    end
+end
+
+% Takeoff
+Thrust = linspace(0,100000,1001);
+% Landing
+Snew = 908.67;
+for i = 1:length(Thrust)
+    T = Thrust(i);
+    converge = 0;
+    Sur(i) = Snew;
+    while converge == 0
+        W0 = WeightEstimate(Sur(i),T);
+        T0W0 = T/W0;
+        %WSnew = ;
+        xold = 1000;
+        for j = 1:length(Takeoff)
+            x = abs(Takeoff(j)-T0W0);
+            if xold < x
+                WSnew = WS(j);
+            else
+                xold = x;
+            end
+        end
+        Snew = W0./WSnew;
+        if abs(Sur(i)-Snew) < dt
+            converge = 1;
+        else
+            Sur(i) = Snew;
+        end
+    end
+end
+TTO = Thrust;
+STO = Sur;
+Thrust = linspace(0,100000,1001);
+% Landing
+Snew = 908.67;
+for i = 1:length(Thrust)
+    T = Thrust(i);
+    converge = 0;
+    Sur(i) = Snew;
+    while converge == 0
+        W0 = WeightEstimate(Sur(i),T);
+        WSnew = 80.3607;
+        Snew = W0./WSnew;
+        if abs(Sur(i)-Snew) < dt
+            converge = 1;
+        else
+            Sur(i) = Snew;
+        end
+    end
+end
+Tlan = Thrust;
+Slan = Sur;
+LD = CL./CDClean;
+
+% A = linspace(75, 1600,1526);
+% B = linspace(0, 10000,1526);
+% [A, B] = meshgrid(A,B);
+% 
+% Cd0TS = Cf.*Swet./A;
+% CDTS = Cd0TS+CL.^2./(pi().*AR.*eClean);
+
+figure(3)
+hold on
+plot(Surface,C,Surface,Cr,Slan,Tlan,STO,TTO)
+axis([146,1600, 0, 70000])
