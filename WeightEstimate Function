@@ -1,0 +1,19 @@
+function [ W0 ] = WeightEstimate( S, T )
+TOGW = 74171;
+
+Wing = 10*S;
+HTail = 5.5*184.06;
+VTail = 5.5*163.07;
+Fuse = 5*6058.46;
+LGear = 0.043*TOGW;
+AllElse = 0.17*TOGW;
+
+EDry = 0.521*(T)^0.9;
+EOil = 0.082*(T)^0.65;
+Erev = 0.034*(T);
+EControl = 0.26*(T)^0.5;
+EStart = 9.33*(EDry/1000)^1.078;
+
+Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
+
+W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
