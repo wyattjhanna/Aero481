@@ -171,6 +171,8 @@ CDTOFdown = CDoTOFdown + CL.^2./(pi*AR*eTOF);
 CDLFup = CDoLFup + CL.^2./(pi*AR*eLF);
 CDLFdown = CDoLFdown + CL.^2./(pi*AR*eLF);
 
+LoD = max(CL./CDClean);
+
 figure 
 hold on 
 plot(CDClean,CL)
@@ -307,6 +309,41 @@ hold on
 plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',STO,TTO,'m','LineWidth',1)
 %plot(Surface,C,Surface,Cr,'k',STO,TTO,'m','LineWidth',1)
 axis([146,1600, 0, 50000])
-legend("Climb 1", "Climb 2", "Climb 3", "Climb 4", "Climb 5", "Climb 6", "Ceiling", "Cruise", "Landing", "Takeoff")
+legend('Climb 1', 'Climb 2', 'Climb 3', 'Climb 4', 'Climb 5', 'Climb 6', 'Ceiling', 'Cruise', 'Landing', 'Takeoff')
 xlabel('S [ft^2]')
 ylabel('T [lb]')
+
+%% Fuel-burn contours 
+%Estimate L/D using drag polar graph 
+%Parasidic drag can be estimated for function of wing area: Cdo = Cf*Swet/S
+%Computing required fuel rate: R = V/c * L/D * ln(W2/W3)
+%V = speed, c = SFC 
+%define array of thrust and wing areas. for every combination compute the
+%fuel weight. Plot contours
+
+%using drag polar graph, CL ~ 0.5150, CD ~ 0.0276
+%Is this realistic?
+%CL./CDOClean(504) is max LD
+Cf = 0.003; %Based on Raymer
+sfc = 0.5; %specific fuel consumption
+CDoClean = Cf*Swet./Sur;
+CD = CDoClean + 0.0276;
+CL = 0.5150*ones(1, length(CD));
+drag = (CD./CL)*W0; %L/D = CL/CD 
+thrust = drag; %in cruise
+Range = 5500; %[nmi]
+%W2W3 = exp(Range./((V_cruise/sfc).*(CL./CD))); 
+%^values are greater than 1... Equation not really needed?
+
+%Array of thrust numbers; how to make thrust and Sref dependent?
+%TSFC = mdotFuel/Thrust --> mdotFuel = Thrust*TSFC
+%mdotFuel [kg/s], so Range [distance]/speed[distance/time] = time needed
+%for fuel. 
+%In cruise, Thrust = Drag
+mDotFuel = thrust.*sfc;
+fuelWeight = mDotFuel.*(Range/V_cruise);
+%Fuel weight actually makes a *lot* of sense! 
+%Now to make contour lines? 
+% [S, T] = meshgrid(Sur, thrust);
+% FuelWeight = 
+
