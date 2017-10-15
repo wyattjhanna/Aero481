@@ -194,6 +194,7 @@ ClimbCoe = [0.3487, 0.3189, 0.2773, 0.1782, 0.3644, 0.3677, 0.0481];
 Tnew = 17745*2;
 Surface = 75:1:1600;
 dt = 0.1;
+Thrust = ones(1,1001);
 %Climbs
 for n = 1:7
     for i = 1:length(Surface)
@@ -215,7 +216,7 @@ for n = 1:7
 end
 
 %Cruise
-    
+    Cr = ones(1,length(Surface));
 for i = 1:length(Surface)
     Tnew = 17745*2;
     Swing = Surface(i);
@@ -247,6 +248,7 @@ end
 Thrust = linspace(1000,100000,1001);
 
 Snew = 908.67;
+Sur = ones(1,1001);
 for i = 1:length(Thrust)
     T = Thrust(i);
     converge = 0;
@@ -324,15 +326,15 @@ ylabel('T [lb]')
 %using drag polar graph, CL ~ 0.5150, CD ~ 0.0276
 %Is this realistic?
 %CL./CDOClean(504) is max LD
-Cf = 0.003; %Based on Raymer
+% Cf = 0.003; %Based on Raymer
 sfc = 0.5; %specific fuel consumption
 CDoClean = Cf*Swet./Sur;
 CD = CDoClean + 0.0276;
-CL = 0.5150*ones(1, length(CD));
+CL = 0.5150; %*ones(1, length(CD));
 drag = (CD./CL)*W0; %L/D = CL/CD 
 thrust = drag; %in cruise
 Range = 5500; %[nmi]
-%W2W3 = exp(Range./((V_cruise/sfc).*(CL./CD))); 
+% W2W3 = exp(Range./((V_cruise/sfc).*(CL./CD))); 
 %^values are greater than 1... Equation not really needed?
 
 %Array of thrust numbers; how to make thrust and Sref dependent?
@@ -340,10 +342,37 @@ Range = 5500; %[nmi]
 %mdotFuel [kg/s], so Range [distance]/speed[distance/time] = time needed
 %for fuel. 
 %In cruise, Thrust = Drag
-mDotFuel = thrust.*sfc;
-fuelWeight = mDotFuel.*(Range/V_cruise);
+% mDotFuel = thrust.*sfc;
+% fuelWeight = mDotFuel.*(Range/V_cruise);
 %Fuel weight actually makes a *lot* of sense! 
 %Now to make contour lines? 
-% [S, T] = meshgrid(Sur, thrust);
-% FuelWeight = 
+fine = 1;
+CDoClean_ = ones(1700/fine,50000);
+CD_ = ones(1700/fine,50000);
+drag_ = ones(1700/fine,50000);
+thrust_ = ones(1700/fine,50000);
+% W2W3 = ones(1700/fine,50000);
+FuelWeight = ones(160,500);
 
+
+for S_loop = 1:(1600/10)
+    S_loop
+    for T_loop = 1:(50000/100)
+        CD_(S_loop,T_loop) = Cf*Swet./S_loop + 0.0276;
+        drag_(S_loop,T_loop) = (CD_(S_loop,T_loop)/CL)*W0;
+        thrust_(S_loop,T_loop) = drag_(S_loop,T_loop);
+        W2W3 = exp(Range/((V_cruise*60/sfc)*(CL/CD_(S_loop,T_loop))))
+        W0_loop = WeightEstimate( S_loop, T_loop );
+        FuelWeight(S_loop,T_loop) = (W2W3*W0_loop)-W0_loop;
+        
+        if FuelWeight(S_loop,T_loop) > 1000000
+            FuelWeight(S_loop,T_loop) = 1000000;
+        end
+    end
+end
+S = 1:10:1600;
+T = 1:100:50000;
+
+v = [17000,18000,19000,20000,21000]
+
+contour(T,S,FuelWeight,v,'ShowText','on')
