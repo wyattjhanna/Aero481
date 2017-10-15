@@ -326,7 +326,7 @@ ylabel('T [lb]')
 %using drag polar graph, CL ~ 0.5150, CD ~ 0.0276
 %Is this realistic?
 %CL./CDOClean(504) is max LD
-% Cf = 0.003; %Based on Raymer
+Cf = 0.003; %Based on Raymer
 sfc = 0.5; %specific fuel consumption
 CDoClean = Cf*Swet./Sur;
 CD = CDoClean + 0.0276;
@@ -351,9 +351,8 @@ for S_loop = 1:(5000/10)
     S_loop
     for T_loop = 1:(50000/100)
         CD_(T_loop,S_loop) = Cf*Swet./S_loop + 0.0276;
-        drag_(T_loop,S_loop) = (CD_(T_loop,S_loop)/CL)*W0;
-        V_cruise = sqrt((2*T_loop)/(.002*100*CD_(T_loop,S_loop)));
-        W2W3 = exp(Range/((V_cruise*100/sfc)*(CL/CD_(T_loop,S_loop))))
+        V_cruise = ((2*T_loop)/(.002*1000*CD_(T_loop,S_loop)))^.5;
+        W2W3 = exp(Range/((V_cruise*60/sfc)*(CL/CD_(T_loop,S_loop))))
         W0_loop = WeightEstimate(T_loop,S_loop);
         FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
         
