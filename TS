@@ -43,7 +43,7 @@ CD = Cdo + CL.^2./Const;
 TW = (0:.5/1000:.5);
 WS = (0:350/1000:350);
 
-p = 0.00215;        % Takeoff air density (slugs)
+p = 0.002153;        % Takeoff air density (slugs)
 p_sl = 0.0023769;    % air density at sea level (slugs)
 
 M_ff = [0.99   0.995 0.995   0.98  0.692  0.9753 0.99    0.9606      0.992]; 
@@ -315,6 +315,8 @@ legend('Climb 1', 'Climb 2', 'Climb 3', 'Climb 4', 'Climb 5', 'Climb 6', 'Ceilin
 xlabel('S [ft^2]')
 ylabel('T [lb]')
 
+%area(min(TTO, Tlan), Surface,.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
+
 %% Fuel-burn contours 
 %Estimate L/D using drag polar graph 
 %Parasidic drag can be estimated for function of wing area: Cdo = Cf*Swet/S
@@ -350,10 +352,11 @@ Range = 5500; %[nmi]
 for S_loop = 1:(5000/10)
     S_loop
     for T_loop = 1:(50000/100)
-        CD_(T_loop,S_loop) = Cf*Swet./S_loop + 0.0276;
-        V_cruise = ((2*T_loop)/(.002*1000*CD_(T_loop,S_loop)))^.5;
-        W2W3 = exp(Range/((V_cruise*60/sfc)*(CL/CD_(T_loop,S_loop))))
-        W0_loop = WeightEstimate(T_loop,S_loop);
+        W0_loop = WeightEstimate(T_loop*100,S_loop);
+        Swet = 10^.2263*W0_loop^.6977; %regression coefficients for exponents
+        CD_(T_loop,S_loop) = Cf*Swet./(S_loop*10);
+        V_cruise = ((2*T_loop*100)/(.002*S_loop*10*CD_(T_loop,S_loop)))^.5;
+        W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(CL/CD_(T_loop,S_loop))))
         FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
         
         if FuelWeight(T_loop,S_loop) > 1000000
