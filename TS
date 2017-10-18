@@ -354,11 +354,11 @@ FuelWeight = ones(500,500);
 for S_loop = 1:(5000/10)
     for T_loop = 1:(50000/100)
         
-        W0_loop = WeightEstimate(T_loop*100,S_loop);
+        W0_loop = WeightEstimate(T_loop*100,S_loop*10);
         Swet = 463025/144 + 2*S_loop*10;                      %regression coefficients for exponents
-        CD0_ = Cf*Swet./(S_loop*10);
-        CD_ = (CD0_ + (CL)^2 / (pi * 9 * e(4))) * (1/1.5);
-        V_cruise = ((2*T_loop*100)/(.002153*S_loop*10*CD_))^.5;
+        CD0_ = Cf*Swet/(S_loop*10);
+        CD_ = (CD0_ + ((CL)^2 / (pi * 12.1 * e(4))));
+        V_cruise = ((2*T_loop*100)/(.0002843*S_loop*10*CD_))^.5;
         W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(CL/CD_)));
         FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
  
