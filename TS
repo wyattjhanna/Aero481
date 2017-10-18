@@ -273,7 +273,7 @@ for i = 1:length(Thrust)
             Sur(i) = Snew;
         end
     end
-    WeightEstimate(Sur(i),T)
+    WeightEstimate(Sur(i),T);
 end
  TTO = Thrust;
  STO = Sur;
@@ -349,16 +349,19 @@ Range = 5500; %[nmi]
 %Fuel weight actually makes a *lot* of sense! 
 %Now to make contour lines?
 
+FuelWeight = ones(500,500);
+
 for S_loop = 1:(5000/10)
-    S_loop
     for T_loop = 1:(50000/100)
-        W0_loop = WeightEstimate(T_loop*100,S_loop);
-        Swet = 10^.2263*W0_loop^.6977; %regression coefficients for exponents
-        CD_(T_loop,S_loop) = Cf*Swet./(S_loop*10);
-        V_cruise = ((2*T_loop*100)/(.002*S_loop*10*CD_(T_loop,S_loop)))^.5;
-        W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(CL/CD_(T_loop,S_loop))))
-        FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
         
+        W0_loop = WeightEstimate(T_loop*100,S_loop);
+        Swet = 463025/144 + 2*S_loop*10;                      %regression coefficients for exponents
+        CD0_ = Cf*Swet./(S_loop*10);
+        CD_ = (CD0_ + (CL)^2 / (pi * 9 * e(4))) * (1/1.5);
+        V_cruise = ((2*T_loop*100)/(.002153*S_loop*10*CD_))^.5;
+        W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(CL/CD_)));
+        FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
+ 
         if FuelWeight(T_loop,S_loop) > 1000000
             FuelWeight(T_loop,S_loop) = 1000000;
         end
