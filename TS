@@ -140,7 +140,7 @@ text(WS(400), Climb(500, 6), 'Climb 6', 'BackgroundColor', 'w', 'color', '[.8 .2
 plot(WS, Ceiling, 'color', '[.2 .8 .2]')
 text(WS(600), Ceiling(600), 'Ceiling', 'BackgroundColor', 'w', 'color', '[.2 .8 .2]');
 
-area(min(WS, Landing), max(Cruise, Climb(1,6)) ,.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
+area(min(WS, Landing), max(Takeoff,max(Cruise, Climb(1,6))),.5,  'EdgeColor', 'none', 'FaceColor', [0 .5 .8]);
 
 plot(Landing(1,1), Climb(1,6), 'k+', 'LineWidth', 2);
 text(Landing(1,1)+4, Climb(1,6)+.005, 'Design Point');
@@ -277,7 +277,7 @@ for i = 1:length(Thrust)
 end
  TTO = Thrust;
  STO = Sur;
-Thrust = linspace(0,100000,1001);
+Thrust = linspace(0,10000000,1001);
 % Landing
 Snew = 908.67;
 for i = 1:length(Thrust)
@@ -308,6 +308,8 @@ LD = CL./CDClean;
 
 figure(3)
 hold on
+area(Slan, Tlan, .5, 'EdgeColor', 'none', 'FaceColor', [0,.5,.8]);
+area(Surface, C(6,:), .5, 'EdgeColor', 'none', 'FaceColor', [1,1,1]);
 plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',STO,TTO,'m','LineWidth',1)
 %plot(Surface,C,Surface,Cr,'k',STO,TTO,'m','LineWidth',1)
 axis([146,1600, 5000, 50000])
