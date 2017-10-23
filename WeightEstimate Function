@@ -2,8 +2,8 @@ function [ W0 ] = WeightEstimate( S, T )
 TOGW = 74171;
 
 Wing = 10*S;
-HTail = 5.5*184.06;
-VTail = 5.5*163.07;
+HTail = 5.5*131.75;
+VTail = 5.5*124.43;
 Fuse = 5*6058.46;
 LGear = 0.043*TOGW;
 AllElse = 0.17*TOGW;
