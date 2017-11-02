@@ -25,7 +25,9 @@ Clmax_to = 1.8;
 Clmax_land = 2.1;
 Clmax_cruise=1.2;
 %Declare global variables
-global M Cruise_alt Sland 
+global M Cruise_alt Sland taper sweep
+taper = .5;
+sweep = 27;
 M =.85;       %cruise speed
 Cruise_alt = 55000;  %cruise alititude
 Sland = 4956; %Landing runway length
@@ -141,25 +143,34 @@ hold off
         end
         
     end
-    function [ W0 ] = WeightEstimate( S, T )
-        TOGW = 74171;
-        
-        Wing = 10*S;
-        HTail = 5.5*184.06;
-        VTail = 5.5*163.07;
-        Fuse = 5*6058.46;
-        LGear = 0.043*TOGW;
-        AllElse = 0.17*TOGW;
-        
-        EDry = 0.521*(T)^0.9;
-        EOil = 0.082*(T)^0.65;
-        Erev = 0.034*(T);
-        EControl = 0.26*(T)^0.5;
-        EStart = 9.33*(EDry/1000)^1.078;
-        
-        Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
-        
-        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
+    function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, TOGW)
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+W_dg = TOGW; %?
+N_z = (1.5 * 2.5); % Ultimate Load Factor
+t_c_root = .11; % Thickness to Chord Ratio at Root
+S_csw = 383; % Control Surface Area in ft^2
+
+Wing = 0.0051*(W_dg*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
+    * (1+taper)^0.1 * cos(deg2rad(sweep))^-1 * S_csw^0.1;
+
+Wing = abs(real(Wing));
+
+HTail = 5.5*181;
+VTail = 5.5*253;
+Fuse = 5*2690;
+LGear = 0.043*TOGW;
+AllElse = 0.17*TOGW;
+
+EDry = 0.521*(T)^0.9;
+EOil = 0.082*(T)^0.65;
+Erev = 0.034*(T);
+EControl = 0.26*(T)^0.5;
+EStart = 9.33*(EDry/1000)^1.078;
+
+Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
+
+W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
     end
     function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
         
@@ -405,7 +416,7 @@ hold off
                 converge = 0;
                 Thrust(i) = Tnew;
                 while converge == 0
-                    W0 = WeightEstimate(Swing,Thrust(i));
+                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, MTOW);
                     TWnew = ClimbCoe(n);
                     Tnew = TWnew.*W0;
                     if abs(Thrust(i)-Tnew) < dt
@@ -426,7 +437,7 @@ hold off
             converge = 0;
             Cr(i) = Tnew;
             while converge == 0
-                W0 = WeightEstimate(Swing,Cr(i));
+                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, MTOW);
                 W0S0 = W0/Swing;
                 xold = 1000;
                 for j = 1:length(WS)
@@ -457,7 +468,7 @@ hold off
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
                 T0W0 = T/W0;
                 %WSnew = ;
                 xold = .05;
@@ -476,7 +487,7 @@ hold off
                     Sur(i) = Snew;
                 end
             end
-            WeightEstimate(Sur(i),T);
+            WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
         end
         TTO = Thrust;
         STO = Sur;
@@ -488,7 +499,7 @@ hold off
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
                 Snew = W0./ws;
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
@@ -532,7 +543,7 @@ hold off
         for S_loop = 1:(5000/10)
             for T_loop = 1:(50000/100)
                 
-                W0_loop = WeightEstimate(T_loop*100,S_loop*10);
+                W0_loop = WeightEstimate(T_loop*100,S_loop*10,AR, taper, sweep, MTOW);
                 Swet = 463025/144 + 2*S_loop*10;
                 CD0_ = Cf*Swet/(S_loop*10);
                 CD_ = (CD0_ + ((CL)^2 / (pi * AR * e(4))));
@@ -552,15 +563,13 @@ hold off
         
         contour(S,T,FuelWeight,v,'ShowText','on')
         
-        
-        
         Fuelmin = 9999999;
         
         for ii = 1:1526
             
             S_loop = Surface(ii);
             T_loop = round(C(1,ii));
-            W0_loop = WeightEstimate(T_loop,S_loop);
+            W0_loop = WeightEstimate(T_loop,S_loop,AR, taper, sweep, MTOW);
             Swet = 463025/144 + 2*S_loop;
             CD0_ = Cf*Swet/(S_loop);
             CD_ = (CD0_ + ((CL)^2 / (pi * AR * e(4))));
