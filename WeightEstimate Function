@@ -1,8 +1,7 @@
 
-function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep)
+function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, TOGW)
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-TOGW = 90587;
 W_dg = TOGW; %?
 N_z = (1.5 * 2.5); % Ultimate Load Factor
 t_c_root = .11; % Thickness to Chord Ratio at Root
@@ -13,9 +12,9 @@ Wing = 0.0051*(W_dg*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
 
 Wing = abs(real(Wing));
 
-HTail = 5.5*184.06;
-VTail = 5.5*163.07;
-Fuse = 5*6058.46;
+HTail = 5.5*181;
+VTail = 5.5*253;
+Fuse = 5*2690;
 LGear = 0.043*TOGW;
 AllElse = 0.17*TOGW;
 
