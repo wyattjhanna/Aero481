@@ -227,10 +227,11 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR))
         % Math Zone
-        [p, P, T] = Standard_Atmosphere(Cruise_alt)
+        [p, P, T] = Standard_Atmosphere(Cruise_alt);
         p_cruise = p;
         V_cruise = M * sqrt(1.4*1716*T); % ft/s?
-        Swet = 10^.2263*MTOW^.6977; %regression coefficients for exponents
+        S_fuselage = 2690;                  %From CAD Model
+        Swet = S_fuselage + 2*Sref;         %Fuselage Surface Area = 2690 ft^2
         Cfe = .003;
         Cdo = Cfe*Swet/Sref;
         %initial cdo pulled from historical data, depends on the landing
@@ -262,7 +263,7 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         
         % Takeoff
         TOP = Sland/37.5;
-        Takeoff = WS./((p./p_sl).*Clmax_to.*TOP)
+        Takeoff = WS./((p./p_sl).*Clmax_to.*TOP);
         
         % CLimb
         Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*Const)+G;
@@ -542,20 +543,17 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         
         for S_loop = 1:(5000/10)
             for T_loop = 1:(50000/100)
-                
+
                 W0_loop = WeightEstimate(T_loop*100,S_loop*10,AR, taper, sweep, MTOW);
-                Swet = 463025/144 + 2*S_loop*10;
+                Swet = S_fuselage + 2*S_loop*10;                                    % ft^2                     
                 CD0_ = Cf*Swet/(S_loop*10);
-                CD_ = (CD0_ + ((CL)^2 / (pi * AR * e(4))));
-                V_cruise = ((2*T_loop*100)/(p_cruise*S_loop*10*CD_))^.5;
-                W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(CL/CD_)));
+                CD_ = (CD0_ + ((Clmax_cruise)^2 / (pi * 12.1 * e(4))));
+                %V_cruise = ((2*T_loop*100)/(.0002843*S_loop*10*CD_))^.5;
+                W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Clmax_cruise/CD_)));
                 FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
-                
-                if FuelWeight(T_loop,S_loop) > 1000000
-                    FuelWeight(T_loop,S_loop) = 1000000;
-                end
             end
         end
+        
         T = 1:100:50000;
         S = 1:10:5000;
         
@@ -566,15 +564,15 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         Fuelmin = 9999999;
         
         for ii = 1:1526
-            
+    
             S_loop = Surface(ii);
             T_loop = round(C(1,ii));
             W0_loop = WeightEstimate(T_loop,S_loop,AR, taper, sweep, MTOW);
-            Swet = 463025/144 + 2*S_loop;
+            Swet = S_fuselage + 2*S_loop;                         
             CD0_ = Cf*Swet/(S_loop);
-            CD_ = (CD0_ + ((CL)^2 / (pi * AR * e(4))));
-            V_cruise = ((2*T_loop*100)/(.0002843*S_loop*CD_))^.5;
-            W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(CL/CD_)));
+            CD_ = (CD0_ + ((Clmax_cruise)^2 / (pi * AR * e(4))));
+            %V_cruise = ((2*T_loop*100)/(.0002843*S_loop*CD_))^.5;
+            W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Clmax_cruise/CD_)));
             FuelWeight = (W2W3*W0_loop)-W0_loop;
             if FuelWeight < Fuelmin
                 Fuelmin = FuelWeight;
