@@ -143,30 +143,42 @@ end
 %% --------------------- Takeoff Weight Estimate ---------------------
     function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, TOGW)
 
-        W_dg = TOGW; %?
-        N_z = (1.5 * 2.5); % Ultimate Load Factor
-        t_c_root = .11; % Thickness to Chord Ratio at Root
-        S_csw = 383; % Control Surface Area in ft^2
+    dt      = 1000;
+    HTail   = 5.5*181;  % Horizontal Tail Sref
+    VTail   = 5.5*253;  % Vertical Tail Sref
+    Fuse    = 5*2690;   % Fuselage Tail Swet
+
+    EDry    = 0.521*(T)^0.9;
+    EOil    = 0.082*(T)^0.65;
+    Erev    = 0.034*(T);
+    EControl= 0.26*(T)^0.5;
+    EStart  = 9.33*(EDry/1000)^1.078;
         
-        Wing = 0.0051*(W_dg*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
+    Engine      = (EDry+EOil+Erev+EControl+EStart)*1.4;
+    Wing_guess  = 10*482.9;
+    We_guess    = HTail+VTail+Fuse+Engine+Wing_guess;
+    
+    N_z         = (1.5 * 2.5);  % Ultimate Load Factor
+    t_c_root    = .11;          % Thickness to Chord Ratio at Root
+    S_csw       = 383;          % Control Surface Area in ft^2
+    M_fff       = 0.6261;
+    Wf_WTO      = 1-M_fff;
+    while dt >= 0.001
+        Fuel = Wf_WTO/M_fff*We_guess;
+        
+        
+        W0_guess = We_guess+Fuel;
+        LGear   = 0.043*W0_guess;
+        AllElse = 0.17*W0_guess;        
+        Wing = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
             * (1+taper)^0.1 * cos(deg2rad(sweep))^-1 * S_csw^0.1;
-        
         Wing = abs(real(Wing));
         
-        HTail = 5.5*181;
-        VTail = 5.5*253;
-        Fuse = 5*2690;
-        LGear = 0.043*TOGW;
-        AllElse = 0.17*TOGW;
+        W0    = HTail+VTail+Fuse+Engine+Wing+LGear+AllElse+Fuel;
         
-        EDry = 0.521*(T)^0.9;
-        EOil = 0.082*(T)^0.65;
-        Erev = 0.034*(T);
-        EControl = 0.26*(T)^0.5;
-        EStart = 9.33*(EDry/1000)^1.078;
-        
-        Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
-        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
+        dt = abs(W0_guess-W0)
+        We_guess = HTail+VTail+Fuse+Engine+Wing+LGear+AllElse;
+    end
     end
 %% ------------------- Standard Atmosphere Function -------------------
     function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
