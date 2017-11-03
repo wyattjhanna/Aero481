@@ -1,13 +1,11 @@
 function [] = MasterFunction();
-
+%% -------------------------- Initialization --------------------------
 clc
 clear all
 close all
 %all variables are in Enlish Units
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-%start off calling our weight iteration code
+%% ----------------------- Initial Weight Guess -----------------------
 %this code gives us our initial empty weight and take off weight based on
 %previous aircraft data
 [We, W_TO_guess, dif] = WeightIteration();
@@ -15,9 +13,8 @@ fprintf('Guess for W_TO %f \n', W_TO_guess);
 fprintf('Guess for W_E  %f \n', We);
 fprintf('Difference of  %f \n \n', dif);
 clear M;
-%this values is the first iteration of our guess weight
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-%next call the code to give us a W/S T/S plot
+
+%% ------------------ Global Variables for Functions ------------------
 MTOW = W_TO_guess;  % Takeoff Weight (lbs)
 Sref = 1109;                    % Wing area (ft^2)
 % Aspect Ratio
@@ -69,11 +66,7 @@ end
 % plot(AR, LOD, 'b--*')
 % hold off
 
-
-
-
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+%% -------------- Weight Iteration with historical values --------------
     function [We, W_TO_guess, dif] = WeightIteration()
         
         % Regression of Data for A and B
@@ -147,9 +140,9 @@ end
         end
         
     end
+%% --------------------- Takeoff Weight Estimate ---------------------
     function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, TOGW)
 
-        %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
         W_dg = TOGW; %?
         N_z = (1.5 * 2.5); % Ultimate Load Factor
         t_c_root = .11; % Thickness to Chord Ratio at Root
@@ -175,6 +168,7 @@ end
         Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
         W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
     end
+%% ------------------- Standard Atmosphere Function -------------------
     function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
         
         altitude = round(altitude/3.28084); % Converting ft to m
@@ -225,7 +219,9 @@ end
         Temperature = tempK(altitude)* 1.8; % temperature in R
 
     end
+%% --------------------- TW WS, Polar Plots, T-S ---------------------
     function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
+%% ------------------------------ TW WS ------------------------------
         FWeight = 25000;
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR))
@@ -360,9 +356,9 @@ end
         text1 = strcat('TW_WS_plot',AR_text,'.png')
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
-        % Drag Polar Plot
+%% ------------------------ Drag Polar Plot ------------------------
         %Raymr for a business jet
-        ws = WS(index); %%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ws = WS(index); 
         Cf = 0.003;
         f = Cf*Swet;
         S = MTOW/ws;
@@ -403,7 +399,7 @@ end
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
         
-        % TS
+%% ------------------------------- TS -------------------------------
         Climb = Climb';
         TWWS = [Takeoff;Cruise];
         
