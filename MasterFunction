@@ -23,7 +23,7 @@ Sref = 1109;                    % Wing area (ft^2)
 % Aspect Ratio
 Clmax_to = 1.8;
 Clmax_land = 2.1;
-Clmax_cruise=1.6;
+Clmax_cruise= 1.6;
 Cl_cruise = .9;
 %Declare global variables
 global M Cruise_alt Sland taper sweep
@@ -173,8 +173,7 @@ end
         EStart = 9.33*(EDry/1000)^1.078;
         
         Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
-        
-        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
+        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse
     end
     function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
         
@@ -227,6 +226,7 @@ end
 
     end
     function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
+        FWeight = 25000;
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR))
         % Math Zone
@@ -365,7 +365,6 @@ end
         ws = WS(index); %%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         Cf = 0.003;
         f = Cf*Swet;
-        MTOW
         S = MTOW/ws;
         CDoClean = f/S;
         eClean = 0.825;
@@ -408,7 +407,7 @@ end
         Climb = Climb';
         TWWS = [Takeoff;Cruise];
         
-        ClimbCoe = [0.3487, 0.3189, 0.2773, 0.1782, 0.3644, 0.3677, 0.0481];
+        ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
         
         Tnew = 17745*2; %thrust of our engines
         Surface = 75:1:1600;
@@ -421,7 +420,8 @@ end
                 converge = 0;
                 Thrust(i) = Tnew;
                 while converge == 0
-                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, MTOW);
+                    TWConvert(1,7) = TWConvert(1,3);
+                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, MTOW) + FWeight*TWConvert(1,n);
                     TWnew = ClimbCoe(n);
                     Tnew = TWnew.*W0;
                     if abs(Thrust(i)-Tnew) < dt
@@ -442,7 +442,7 @@ end
             converge = 0;
             Cr(i) = Tnew;
             while converge == 0
-                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, MTOW);
+                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, MTOW) + FWeight*TWConvert(1,3);
                 W0S0 = W0/Swing;
                 xold = 1000;
                 for j = 1:length(WS)
@@ -473,7 +473,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW) + FWeight*TWConvert(1,1);
                 T0W0 = T/W0;
                 %WSnew = ;
                 xold = .05;
@@ -504,7 +504,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW) + FWeight*TWConvert(1,5);
                 Snew = W0./ws;
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
