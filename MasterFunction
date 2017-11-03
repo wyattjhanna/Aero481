@@ -1,11 +1,11 @@
-function [] = MasterFunction();
+function [] = MasterFunction()
 
 clc
 clear all
 close all
 %all variables are in Enlish Units
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+Range = 5200;
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %start off calling our weight iteration code
 %this code gives us our initial empty weight and take off weight based on
@@ -69,9 +69,6 @@ end
 % plot(AR, LOD, 'b--*')
 % hold off
 
-
-
-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     function [We, W_TO_guess, dif] = WeightIteration()
@@ -110,7 +107,7 @@ end
             % Warmup, Taxi, Takeoff, Climb, Cruise, Loiter, Descent, Alternative, Landing
             
             % Cruise fuel fraction
-            R_cr    = 5000; % Range (nmi)
+            R_cr    = Range - 200; % Range (nmi)
             V_cr    = 573*0.85; % Speed of sound at 12600 m going cruising at mach 0.85
             cj_cr   = 0.5;
             LD_cr   = 15;
@@ -173,7 +170,7 @@ end
         EStart = 9.33*(EDry/1000)^1.078;
         
         Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
-        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse
+        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
     end
     function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
         
@@ -202,8 +199,6 @@ end
             tempK(H) = pasttemp;
             pasttemp = nexttemp;
         end
-        
-        tempC = tempK - 273.15;
                
         for H = 1:11000
             pressureNM2(H) = press0 * (288.15 /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * -0.0065));
@@ -228,9 +223,9 @@ end
     function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
         FWeight = 25000;
         %naming of picture file
-        AR_text = strcat(' AR = ', num2str(AR))
+        AR_text = strcat(' AR = ', num2str(AR));
         % Math Zone
-        [p, P, T] = Standard_Atmosphere(Cruise_alt);
+        [p, ~, T] = Standard_Atmosphere(Cruise_alt);
         p_cruise = p;
         V_cruise = M * sqrt(1.4*1716*T); % ft/s?
         S_fuselage = 2690;                  %From CAD Model
@@ -272,7 +267,7 @@ end
         Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*Const)+G;
         Climb = Climb .* ones(1001,1);
         Cor = (1/.8)*(1/.94)*(2);
-        TWConvert = [M_ff(1)*M_ff(2)                            %1
+        TWConvert = [M_ff(1)*M_ff(2)                   %1
             M_ff(1)*M_ff(2)                            %2
             M_ff(1)*M_ff(2)                            %3
             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)            %4
@@ -348,7 +343,7 @@ end
         
         area(min(WS, Landing), max(Takeoff,max(Cruise, Climb(1,6))),.5,  'EdgeColor', 'none', 'FaceColor', [.8 .9 1]);
         
-        [c, index] = min(abs(Climb(1,6) - Takeoff))
+        [c, index] = min(abs(Climb(1,6) - Takeoff));
         Takeoff(index)
         plot(WS(index), Climb(1,6), 'k+', 'LineWidth', 3);
         text(WS(index)+4, Climb(1,6)+.005, 'Design Point', 'fontsize', 16);
@@ -357,7 +352,7 @@ end
         ylabel('T/W', 'fontsize', 18)
         axis([0,350,0,.5])
         
-        text1 = strcat('TW_WS_plot',AR_text,'.png')
+        text1 = strcat('TW_WS_plot',AR_text,'.png');
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
         % Drag Polar Plot
@@ -399,7 +394,7 @@ end
         title(plot_drag, 'fontsize', 18)
         axis([0 .3 -2.2 2.2])
         legend({'Clean','T0 - F Up', 'TO - F Down', 'L - F Up', 'L - F Down'}, 'fontsize', 14)
-        text1 = strcat('DragPolarPlot',AR_text,'.png')
+        text1 = strcat('DragPolarPlot',AR_text,'.png');
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
         
@@ -515,7 +510,7 @@ end
         end
         Tlan = Thrust;
         Slan = Sur;
-        LD = CLClean./CDClean;
+        %LD = CLClean./CDClean;
         
         figure(fig_num)
         set(gcf, 'Position', get(0, 'Screensize'));
@@ -534,7 +529,6 @@ end
         xlabel('S [ft^2]', 'fontsize', 18)
         ylabel('T [lb]', 'fontsize', 18)
 
-        Range = 5200; %[nmi]
         
         FuelWeight = ones(500,500);
         
@@ -566,7 +560,7 @@ end
             W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, MTOW);
             Swet = S_fuselage + 2*S_loop + 2*181 + 2*253;  %Wetted area of fuselage, wing, HTail, VTail                       
             CD0_ = Cf*Swet/(S_loop);
-            CD_ = (CD0_ + ((Clmax_cruise)^2 / (pi * AR * e(4))))
+            CD_ = (CD0_ + ((Clmax_cruise)^2 / (pi * AR * e(4))));
             %V_cruise = ((2*T_loop*100)/(.0002843*S_loop*CD_))^.5;
             W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Clmax_cruise/CD_)));
             FuelWeight = (W2W3*W0_loop)-W0_loop;
@@ -582,9 +576,9 @@ end
         set(gca,'XTickLabel',200:200:1600)
         
         w_mass = Surface(Fuelminii)*10;
-        wing_weight = sprintf('Wing Weight = %i [lbs]', w_mass)
+        wing_weight = sprintf('Wing Weight = %i [lbs]', w_mass);
         title(wing_weight, 'fontsize', 16)
-        text1 = strcat('TSplot',AR_text,'.png')
+        text1 = strcat('TSplot',AR_text,'.png');
         saveas(figure(fig_num),text1)
     end
 end 
