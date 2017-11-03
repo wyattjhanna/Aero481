@@ -19,11 +19,12 @@ clear M;
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %next call the code to give us a W/S T/S plot
 MTOW = W_TO_guess;  % Takeoff Weight (lbs)
-Sref = 1140;                    % Wing area (ft^2)
+Sref = 1109;                    % Wing area (ft^2)
 % Aspect Ratio
 Clmax_to = 1.8;
 Clmax_land = 2.1;
 Clmax_cruise=1.2;
+Cl_cruise = .9;
 %Declare global variables
 global M Cruise_alt Sland taper sweep
 taper = .5;
@@ -31,6 +32,9 @@ sweep = 27;
 M =.85;       %cruise speed
 Cruise_alt = 55000;  %cruise alititude
 Sland = 4956; %Landing runway length
+
+Cf = 0.003; %Based on Raymer
+sfc = 0.6; %specific fuel consumption
 
 AR = linspace(11,12,2);
 %AR = 12;
@@ -145,32 +149,32 @@ hold off
     end
     function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, TOGW)
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-W_dg = TOGW; %?
-N_z = (1.5 * 2.5); % Ultimate Load Factor
-t_c_root = .11; % Thickness to Chord Ratio at Root
-S_csw = 383; % Control Surface Area in ft^2
-
-Wing = 0.0051*(W_dg*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
-    * (1+taper)^0.1 * cos(deg2rad(sweep))^-1 * S_csw^0.1;
-
-Wing = abs(real(Wing));
-
-HTail = 5.5*181;
-VTail = 5.5*253;
-Fuse = 5*2690;
-LGear = 0.043*TOGW;
-AllElse = 0.17*TOGW;
-
-EDry = 0.521*(T)^0.9;
-EOil = 0.082*(T)^0.65;
-Erev = 0.034*(T);
-EControl = 0.26*(T)^0.5;
-EStart = 9.33*(EDry/1000)^1.078;
-
-Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
-
-W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
+        %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+        W_dg = TOGW; %?
+        N_z = (1.5 * 2.5); % Ultimate Load Factor
+        t_c_root = .11; % Thickness to Chord Ratio at Root
+        S_csw = 383; % Control Surface Area in ft^2
+        
+        Wing = 0.0051*(W_dg*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
+            * (1+taper)^0.1 * cos(deg2rad(sweep))^-1 * S_csw^0.1;
+        
+        Wing = abs(real(Wing));
+        
+        HTail = 5.5*181;
+        VTail = 5.5*253;
+        Fuse = 5*2690;
+        LGear = 0.043*TOGW;
+        AllElse = 0.17*TOGW;
+        
+        EDry = 0.521*(T)^0.9;
+        EOil = 0.082*(T)^0.65;
+        Erev = 0.034*(T);
+        EControl = 0.26*(T)^0.5;
+        EStart = 9.33*(EDry/1000)^1.078;
+        
+        Engine = (EDry+EOil+Erev+EControl+EStart)*1.4;
+        
+        W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
     end
     function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
         
@@ -223,7 +227,6 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
 
     end
     function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
-        Clmax_cruise=1.2;
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR))
         % Math Zone
@@ -246,7 +249,7 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         e =  [ .775  .775  .825  .825  .725  .725];
         %      1     2     3     4     5     6       <- Climb #
         Const = pi*AR.*e;
-        CL = [Clmax_to, Clmax_to, .9, .9, Clmax_land, Clmax_land];
+        CL = [Clmax_to, Clmax_to, Cl_cruise, Cl_cruise, Clmax_land, Clmax_land];
         %initialize
         TW = (0:.5/1000:.5);
         WS = (0:350/1000:350);
@@ -529,27 +532,19 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         legend('Feasible', 'Not Feasible','Climb 1', 'Climb 2', 'Climb 3', 'Climb 4', 'Climb 5', 'Climb 6', 'Ceiling', 'Cruise', 'Landing', 'Takeoff', 'AutoUpdate', 'off')
         xlabel('S [ft^2]', 'fontsize', 18)
         ylabel('T [lb]', 'fontsize', 18)
-        
-        Cf = 0.003; %Based on Raymer
-        sfc = 0.5; %specific fuel consumption
-        CDoClean = Cf*Swet./Sur;
-        CD = CDoClean + 0.0276;
-        CL = 0.5150; %*ones(1, length(CD));
-        drag = (CD./CL)*W0; %L/D = CL/CD
-        thrust = drag; %in cruise
-        Range = 5500; %[nmi]
+
+        Range = 5200; %[nmi]
         
         FuelWeight = ones(500,500);
         
         for S_loop = 1:(5000/10)
             for T_loop = 1:(50000/100)
 
-                W0_loop = WeightEstimate(T_loop*100,S_loop*10,AR, taper, sweep, MTOW);
+                W0_loop = WeightEstimate(S_loop*10,T_loop*100,AR, taper, sweep, MTOW);
                 Swet = S_fuselage + 2*S_loop*10;                                    % ft^2                     
                 CD0_ = Cf*Swet/(S_loop*10);
-                CD_ = (CD0_ + ((Clmax_cruise)^2 / (pi * 12.1 * e(4))));
-                %V_cruise = ((2*T_loop*100)/(.0002843*S_loop*10*CD_))^.5;
-                W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Clmax_cruise/CD_)));
+                CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
+                W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_)));
                 FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
             end
         end
@@ -557,7 +552,7 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
         T = 1:100:50000;
         S = 1:10:5000;
         
-        v = [18,19,20,21,22,23,24,25,26,27,28,29,30]*1000;
+        v = [10,15,18,19,20,21,22,23,24,25,26,27,28,29,30]*1000;
         
         contour(S,T,FuelWeight,v,'ShowText','on')
         
@@ -567,10 +562,10 @@ W0 = Wing+HTail+VTail+Fuse+LGear+Engine+AllElse;
     
             S_loop = Surface(ii);
             T_loop = round(C(1,ii));
-            W0_loop = WeightEstimate(T_loop,S_loop,AR, taper, sweep, MTOW);
+            W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, MTOW);
             Swet = S_fuselage + 2*S_loop;                         
             CD0_ = Cf*Swet/(S_loop);
-            CD_ = (CD0_ + ((Clmax_cruise)^2 / (pi * AR * e(4))));
+            CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
             %V_cruise = ((2*T_loop*100)/(.0002843*S_loop*CD_))^.5;
             W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Clmax_cruise/CD_)));
             FuelWeight = (W2W3*W0_loop)-W0_loop;
