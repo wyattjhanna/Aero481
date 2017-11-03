@@ -1,11 +1,11 @@
-function [] = MasterFunction()
+function [] = MasterFunction();
 
 clc
 clear all
 close all
 %all variables are in Enlish Units
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Range = 5200;
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %start off calling our weight iteration code
 %this code gives us our initial empty weight and take off weight based on
@@ -37,7 +37,7 @@ Cf = 0.003; %Based on Raymer
 sfc = 0.6; %specific fuel consumption
 
 %AR = linspace(11,12,2);
-AR = 12;
+AR = 10;
 
 %we can loop through with different aspect ratios. 3 graphs per loop\
 num = 1;
@@ -68,6 +68,9 @@ end
 % yyaxis right
 % plot(AR, LOD, 'b--*')
 % hold off
+
+
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -107,7 +110,7 @@ end
             % Warmup, Taxi, Takeoff, Climb, Cruise, Loiter, Descent, Alternative, Landing
             
             % Cruise fuel fraction
-            R_cr    = Range - 200; % Range (nmi)
+            R_cr    = 5000; % Range (nmi)
             V_cr    = 573*0.85; % Speed of sound at 12600 m going cruising at mach 0.85
             cj_cr   = 0.5;
             LD_cr   = 15;
@@ -199,6 +202,8 @@ end
             tempK(H) = pasttemp;
             pasttemp = nexttemp;
         end
+        
+        tempC = tempK - 273.15;
                
         for H = 1:11000
             pressureNM2(H) = press0 * (288.15 /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * -0.0065));
@@ -223,9 +228,9 @@ end
     function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
         FWeight = 25000;
         %naming of picture file
-        AR_text = strcat(' AR = ', num2str(AR));
+        AR_text = strcat(' AR = ', num2str(AR))
         % Math Zone
-        [p, ~, T] = Standard_Atmosphere(Cruise_alt);
+        [p, P, T] = Standard_Atmosphere(Cruise_alt);
         p_cruise = p;
         V_cruise = M * sqrt(1.4*1716*T); % ft/s?
         S_fuselage = 2690;                  %From CAD Model
@@ -267,7 +272,7 @@ end
         Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*Const)+G;
         Climb = Climb .* ones(1001,1);
         Cor = (1/.8)*(1/.94)*(2);
-        TWConvert = [M_ff(1)*M_ff(2)                   %1
+        TWConvert = [M_ff(1)*M_ff(2)                            %1
             M_ff(1)*M_ff(2)                            %2
             M_ff(1)*M_ff(2)                            %3
             M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)            %4
@@ -343,7 +348,7 @@ end
         
         area(min(WS, Landing), max(Takeoff,max(Cruise, Climb(1,6))),.5,  'EdgeColor', 'none', 'FaceColor', [.8 .9 1]);
         
-        [c, index] = min(abs(Climb(1,6) - Takeoff));
+        [c, index] = min(abs(Climb(1,6) - Takeoff))
         Takeoff(index)
         plot(WS(index), Climb(1,6), 'k+', 'LineWidth', 3);
         text(WS(index)+4, Climb(1,6)+.005, 'Design Point', 'fontsize', 16);
@@ -352,7 +357,7 @@ end
         ylabel('T/W', 'fontsize', 18)
         axis([0,350,0,.5])
         
-        text1 = strcat('TW_WS_plot',AR_text,'.png');
+        text1 = strcat('TW_WS_plot',AR_text,'.png')
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
         % Drag Polar Plot
@@ -394,7 +399,7 @@ end
         title(plot_drag, 'fontsize', 18)
         axis([0 .3 -2.2 2.2])
         legend({'Clean','T0 - F Up', 'TO - F Down', 'L - F Up', 'L - F Down'}, 'fontsize', 14)
-        text1 = strcat('DragPolarPlot',AR_text,'.png');
+        text1 = strcat('DragPolarPlot',AR_text,'.png')
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
         
@@ -415,8 +420,8 @@ end
                 converge = 0;
                 Thrust(i) = Tnew;
                 while converge == 0
-                    TWConvert(1,7) = TWConvert(1,3);
-                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, MTOW) + FWeight*TWConvert(1,n);
+                    
+                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, MTOW) + FWeight;
                     TWnew = ClimbCoe(n);
                     Tnew = TWnew.*W0;
                     if abs(Thrust(i)-Tnew) < dt
@@ -437,7 +442,7 @@ end
             converge = 0;
             Cr(i) = Tnew;
             while converge == 0
-                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, MTOW) + FWeight*TWConvert(1,3);
+                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, MTOW) + FWeight;
                 W0S0 = W0/Swing;
                 xold = 1000;
                 for j = 1:length(WS)
@@ -468,7 +473,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW) + FWeight*TWConvert(1,1);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW) + FWeight;
                 T0W0 = T/W0;
                 %WSnew = ;
                 xold = .05;
@@ -499,7 +504,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW) + FWeight*TWConvert(1,5);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW) + FWeight;
                 Snew = W0./ws;
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
@@ -510,7 +515,7 @@ end
         end
         Tlan = Thrust;
         Slan = Sur;
-        %LD = CLClean./CDClean;
+        LD = CLClean./CDClean;
         
         figure(fig_num)
         set(gcf, 'Position', get(0, 'Screensize'));
@@ -529,6 +534,7 @@ end
         xlabel('S [ft^2]', 'fontsize', 18)
         ylabel('T [lb]', 'fontsize', 18)
 
+        Range = 5200; %[nmi]
         
         FuelWeight = ones(500,500);
         
@@ -575,10 +581,10 @@ end
         set(gca,'XTick',200:200:1600)
         set(gca,'XTickLabel',200:200:1600)
         
-        w_mass = Surface(Fuelminii)*10;
-        wing_weight = sprintf('Wing Weight = %i [lbs]', w_mass);
-        title(wing_weight, 'fontsize', 16)
-        text1 = strcat('TSplot',AR_text,'.png');
+%         w_mass = Surface(Fuelminii)*10;
+%         wing_weight = sprintf('Wing Weight = %i [lbs]', w_mass)
+%         title(wing_weight, 'fontsize', 16)
+        text1 = strcat('TSplot',AR_text,'.png')
         saveas(figure(fig_num),text1)
     end
 end 
