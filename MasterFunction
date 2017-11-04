@@ -3,6 +3,9 @@ function [] = MasterFunction();
 clc
 clear all
 close all
+
+Plot_Graphs = 1;                %Turns plotting on and off
+
 %all variables are in Enlish Units
 
 %% ----------------------- Initial Weight Guess -----------------------
@@ -17,11 +20,11 @@ clear M;
 
 %% ------------------ Global Variables for Functions ------------------
 %Declare global variables
-global M Cruise_alt Sland taper sweep
+global M Cruise_alt Sland taper sweep Range V_cruise
 
 MTOW = W_TO_guess;              % Takeoff Weight (lbs)
 Sref = 1109;                    % Wing area (ft^2)
-AR = 10;                        % Aspect Ratio
+AR = 12;                        % Aspect Ratio
 %AR = linspace(11,12,2);        %we can loop through with different aspect ratios. 3 graphs per loop\
 taper = .5;
 sweep = 27;
@@ -34,9 +37,12 @@ Cl_cruise = .9;
 M =.85;                         %cruise speed
 Cruise_alt = 55000;             %cruise alititude
 Sland = 4956;                   %Landing runway length
+Range = 5200;                   %[nmi]
 
 Cf = 0.003;                     %Based on Raymer
 sfc = 0.6;                      %specific fuel consumption
+
+sweep = deg2rad(sweep);
 
 num = 1;
 for arinc = 1:length(AR)
@@ -166,7 +172,7 @@ end
     M_fff       = 0.6261;
     Wf_WTO      = 1-M_fff;
     
-    while dt >= 0.001
+    while dt >= 0.01
         
         Fuel = Wf_WTO/M_fff*We_guess;
 
@@ -174,8 +180,7 @@ end
         LGear   = 0.043*W0_guess;
         AllElse = 0.17*W0_guess;        
         Wing = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
-            * (1+taper)^0.1 * cos(deg2rad(sweep))^-1 * S_csw^0.1;
-        Wing = abs(real(Wing));
+            * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         
         W0    = HTail+VTail+Fuse+Engine+Wing+LGear+AllElse+Fuel;
         
@@ -237,7 +242,7 @@ end
 %% --------------------- TW WS, Polar Plots, T-S ---------------------
     function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
 %% ------------------------------ TW WS ------------------------------
-        FWeight = 25000;
+
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR));
         % Math Zone
@@ -282,7 +287,7 @@ end
         % CLimb
         Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*Const)+G;
         Climb = Climb .* ones(1001,1);
-        Cor = (1/.8)*(1/.94)*(2);
+        Cor = (1/.8)*(1/.82)*(2);
         TWConvert = [M_ff(1)*M_ff(2)                            %1
             M_ff(1)*M_ff(2)                            %2
             M_ff(1)*M_ff(2)                            %3
@@ -298,7 +303,7 @@ end
         % Cruise
         q = (1/2)*p_cruise*V_cruise^2;
         Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
-        ThrustScale = .55*(p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
+        ThrustScale = .53*(p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
         Cruise = Cruise .* ThrustScale .*(M_ff(1)* M_ff(2)* M_ff(3)* M_ff(4));
         
         % Plotting
@@ -515,7 +520,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW*TWConvert(6));
                 Snew = W0./ws;                                              % Why is ws fixed ???????????????????????????????
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
@@ -545,7 +550,6 @@ end
         xlabel('S [ft^2]', 'fontsize', 18)
         ylabel('T [lb]', 'fontsize', 18)
 
-        Range = 5200; %[nmi]
         
         FuelWeight = ones(500,500);
         
@@ -566,7 +570,9 @@ end
         
         v = [10,15,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,50,60,70,80,90,100]*1000;
         
-        contour(S,T,FuelWeight,v,'ShowText','on')
+        if Plot_Graphs == 1
+            contour(S,T,FuelWeight,v,'ShowText','on')
+        end
         
         Fuelmin = 9999999;
         
@@ -582,19 +588,23 @@ end
             FuelWeight = (W2W3*W0_loop)-W0_loop;
             if FuelWeight < Fuelmin
                 Fuelmin = FuelWeight;
+                Design_MTOW = W0_loop;
                 Fuelminii = ii;
             end
         end
         
-        plot(Surface(Fuelminii),C(6,Fuelminii), 'k+', 'LineWidth', 2);
-        text(Surface(Fuelminii)+25, C(6,Fuelminii)-500, 'Design Point');
-        set(gca,'XTick',200:200:1600)
-        set(gca,'XTickLabel',200:200:1600)
         
-%         w_mass = Surface(Fuelminii)*10;
-%         wing_weight = sprintf('Wing Weight = %i [lbs]', w_mass)
-%         title(wing_weight, 'fontsize', 16)
-        text1 = strcat('TSplot',AR_text,'.png');
-        saveas(figure(fig_num),text1)
+        if Plot_Graphs == 1        
+                plot(Surface(Fuelminii),C(6,Fuelminii), 'k+', 'LineWidth', 2);
+                text(Surface(Fuelminii)+25, C(6,Fuelminii)-500, 'Design Point');
+                set(gca,'XTick',200:200:1600)
+                set(gca,'XTickLabel',200:200:1600)
+
+        %         w_mass = Surface(Fuelminii)*10;
+        %         wing_weight = sprintf('Wing Weight = %i [lbs]', w_mass)
+        %         title(wing_weight, 'fontsize', 16)
+                text1 = strcat('TSplot',AR_text,'.png');
+                saveas(figure(fig_num),text1)
+        end
     end
 end 
