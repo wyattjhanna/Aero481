@@ -1,0 +1,40 @@
+S = 1026; %ft^2
+AR = linspace(0, 18, 100);
+b = sqrt(S.*AR);
+Fuel = 26145; %lbs 
+sweep = 27; %degrees 
+taper = 0.26;
+t_c_root = .11;
+N_z = 3.6;
+W0_guess = 80000; %Gross TOweight 
+Mach_sea = 0.85;
+q = .5*1.4*0.000364*Mach_sea^2;
+S_csw = 382;
+c_root = 15;
+AR_desired = 12;
+
+%Raymber GA
+Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+%raymer transport
+Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ 0.5 * (t_c_root)^ -0.4...
+       * (1+taper)^0.1 * cosd(sweep)^-1 * S_csw^0.1;
+%torenbeek: light transport
+% Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
+%        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
+%Nicolai General Dynamics transport
+Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+        / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
+
+Wing_avg = sum(Wing)/3;
+
+x = AR_desired*ones(1, length(AR));
+y = linspace(0,12000, length(x));
+
+%k = find(Wing_avg == y)
+
+
+plot(AR, Wing(1,:), AR, Wing(2,:), AR, Wing(3,:), AR, Wing_avg, x,y)
+legend('Raymer GA', 'Raymer Transport', 'Nicolai', 'Average', 'Chosen AR')
+xlabel('AR')
+ylabel('Wing Weight')
+ 
