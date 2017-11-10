@@ -1,41 +1,64 @@
-function [] = PolarPlotRefine(AR, Sref, Swet, fl, le, Flapscc, LEcc, FlapHL, LEHL, Sflapped, SLE)
-% Reference Area                  = 12   (updated 11/08/17)
-% Wing Area,                      = 1017 (updated 11/08/17)
-% All wetted area,                =      (updated 11/08/17)
-% flap type (1-6),                =      (updated 11/08/17)
-% leading edge device type (1-5), =      (updated 11/08/17)
-% Flap Chord Fraction,            =      (updated 11/08/17)
-% LE Chord fraction               =      (updated 11/08/17)
-% Flap Hindge Line Sweep (deg)    =      (updated 11/08/17)
-% LE Hinge Line Sweep (deg)       =      (updated 11/08/17)
-% Flapped wing area               =      (updated 11/08/17)
-% Leading flapped wing area       =      (updated 11/08/17)
+function [] = PolarPlotRefine(k, M, l, t, xc, Lm, Swet, Sref)
+% Select, Ctrl+T, Copy, Ctrl+R
+% Run in Command Window
+%%
+% k = 1; % (1-5) Surface Choice
+% M = 0.85;
+% % Component order
+% % Wing, VTail, HTail, Fuselage, Nacelle
+% % length
+% l = [0, 0, 0, 0, 0]; 
+% % Thickness
+% t = [0, 0, 0, 0, 0];
+% % Chord wise location of max airfoil thickness
+% xc = [0, 0, 0];
+% % Componentwise Sweep (deg)
+% Lm = [0, 0, 0]
+% Swet = [0, 0, 0, 0, 0]
+% Sref = 1017; % Reference area (Either it's wing or aircraft ???)
+% PolarPlotRefine(k, M, l, t, xc, Lm, Swet, Sref)
 
+%%
+% Skin Roughness Value
+% Camo on Aluminum, Smooth Paint, Production Sheet Metal, Polished Sheet
+% metal, Smooth molded composite
+K = [3.33, 2.08, 1.33, 0.5, 0.17]*10^-5;
+% CD0 Drag = CDparasite + CDmisc + CDLP
+% Component Reynolds number (Transonic)
+R = 44.62*(l/K(k)).^(1.053)*M^1.16;
+% Parasite Drag
+% Laminar
+Cf_laminar   = 1.328./sqrt(R);
+% Turbulent
+Cf_turbulent = 0.455./((log10(R)).^2.58.*(1+0.144.*M.^2).^0.65);
+% Average of Laminar and turbulent
+Cf_avg       = (Cf_laminar + Cf_turbulent)./2;
 
+% Component Form Factors
+% Wing, VTail, HTail
+tc     = t(1:3)/l(1:3);
+FFcomp = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cosd(Lm).^0.28);
 
-% Run
-% PolarPlotRefine(12, 1017, 1, 1, , , , , , )
-    
-    % DClmax: None, Plain and split, Slotted, Fowler, Double Slotted, Triple Slotted
-    Flaps   = [0, 0.9, 1.3, 1.3*Flapscc, 1.6*Flapscc, 1.9*Flapscc];
-    Flap = Flaps(fl);
-    
-    % DClmax: Fixed Slot, Leading edge flap, kruger flap, slat
-    LEs      = [0, 0.2, 0.3, 0.3, 0.4*LEcc];
-    LE = LEs(le);
-    
-    DCLmaxFlap = Flap*(Sflapped/Sref)*cosd(FlapHL)
-    DCLmaxLE = LE*(SLE/Sref)*cosd(LEHL)
-    
-    
-%     E       = [0.825, 0.7725, 0.7725, 0.7225, 0.7225];
-%     dCL     = pi*AR*E;
-    
-    
-    % CD: Clean, TO + gearup, TO + geardown, LAN + gearup, LAN + geardown
-%     CD = CD0 + (CL.^2)./dCL;
+% length/thickness for fuselage and nacelle
+f_fuse = l(4)/t(4);
+f_nace = l(5)/t(5);
+% Fuselage
+FFfuse = (1 + 60/f_fuse^3 + f_fuse/400);
+% Nacelle
+FFnace = 1 + 0.35/f_nace;
 
+FFc    = [FFcomp, FFfuse, FFnace];
 
-%     Cf  = 0.003;
-%     f   = Cf*Swet;
-%     CD0 = f/Sref;
+% Interference Factor
+% [Ranges based on fillet(1.1-1.4),
+Qc      = [1.1, 1.03, 1.03, 1, 1.3];
+
+num     = Cf_avg.*FFc.*Qc.*Swet;
+CD_para = sum(num)/Sref; 
+% Miscellaneous Drag (Landing Gear, Flaps)
+CD_misc = 0; % <------ Still need to calculate
+% Leakages and Proturbances Drag
+% 2 - 5 % of parasite drag
+CD_LP   = CD_para*1.035;
+
+CD0     = CD_para + CD_misc + CD_LP;
