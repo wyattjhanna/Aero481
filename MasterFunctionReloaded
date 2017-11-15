@@ -3,10 +3,8 @@ function [] = MasterFunctionReloaded();
 clc
 clear all
 close all
-
-dt = 10;
-
-Plot_Graphs = 1;                                                            %Turns plotting on and off
+dt = 10;                 %weight convergence number
+Plot_Graphs = 1;         %Turns plotting on and off
 
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
@@ -25,7 +23,7 @@ S_Fuselage = 2690;          %From CAD Model
 t_c_root    = .11;          % Thickness to Chord Ratio at Root
 S_csw       = 283;          % Control Surface Area in ft^2
 
-taper = .5;
+taper = .26;
 sweep = 27;
 
 Clmax_to = 1.8;
@@ -58,48 +56,57 @@ for arinc = 1:length(AR)
 end
 
 %% --------------------- Weight Estimate ---------------------
-    function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, TOGW)
-
-    Wing_guess  = S*10;
-    
+    function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, M_ff)
+   W0_guess = 100000;
     converge = 99999999;
     
     HTail   = 5.5*S_HTail;  % Horizontal Tail Sref
     VTail   = 5.5*S_VTail;  % Vertical Tail Sref
     Fuse    = 5*S_Fuselage;   % Fuselage Swet
-
+    %engine specs
     EDry    = 0.521*(T)^0.9;
     EOil    = 0.082*(T)^0.65;
     Erev    = 0.034*(T);
     EControl= 0.26*(T)^0.5;
-    EStart  = 9.33*(EDry/1000)^1.078;
-        
+    EStart  = 9.33*(EDry/1000)^1.078;   
     Engine      = (EDry+EOil+Erev+EControl+EStart)*1.4;
-
-    We_guess    = HTail+VTail+Fuse+Engine+Wing_guess;
     
     Swet = S_Fuselage + 2*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
     
     N_z         = (1.5 * 2.5);  % Ultimate Load Factor
     CD0_ = Cf*Swet/(S);
-    CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
-    W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_)));
+    CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4)))); 
+    M_ff(5) = exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_)));
+    Mach_sea = 0.2;
+    q = .5*1.4*0.000364*Mach_sea^2;
+    c_root = 15;
     
+    M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
     
     while converge >= 0.01
         
-        Fuel = (W2W3*TOGW)-TOGW;
+        Fuel = M_fff*W0_guess;
 
-        W0_guess = We_guess+Fuel + Payload;
         LGear   = 0.043*W0_guess;
         AllElse = 0.17*W0_guess;        
-        Wing = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 * AR ^ 0.5 * (t_c_root)^ -0.4...
-            * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         
-        W0    = HTail+VTail+Fuse+Engine+Wing+LGear+AllElse+Fuel + Payload;
+        %Raymber GA
+        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+        %raymer transport
+        Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ 0.5 * (t_c_root)^ -0.4...
+        * (1+taper)^0.1 * cosd(sweep)^-1 * S_csw^0.1;
+        %torenbeek: light transport
+        %Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
+        %        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
+        %Nicolai General Dynamics transport
+        Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+        / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
+        Wing_avg = sum(Wing)/3;
         
-        converge = abs(W0_guess-W0);
-        We_guess = HTail+VTail+Fuse+Engine+Wing+LGear+AllElse;
+        W0    = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
+        
+        converge = abs(W0_guess-W0)
+       W0_guess = W0;
     end
     end
 %% ------------------- Standard Atmosphere Function -------------------
@@ -188,6 +195,8 @@ end
         p_sl = Standard_Atmosphere(2); %air density at sea level (slugs) code wont work at 0 for some reason
         
         M_ff = [0.99   0.995 0.995   0.98  0.692  0.9753 0.99    0.9606      0.992];
+ 
+        
         %       Warmup Taxi  Takeoff Climb Cruise Loiter Descent Alternative Landing
         
         % Landing field Length
@@ -350,7 +359,7 @@ end
                 Thrust(i) = Tnew;
                 while converge == 0
                     
-                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, MTOW);
+                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, M_ff);
                     TWnew = ClimbCoe(n);
                     Tnew = TWnew.*W0;
                     if abs(Thrust(i)-Tnew) < dt
@@ -371,7 +380,7 @@ end
             converge = 0;
             Cr(i) = Tnew;
             while converge == 0
-                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, MTOW);
+                W0 = WeightEstimate(Swing,Cr(i),AR, taper, sweep, M_ff);
                 W0S0 = W0/Swing;
                 xold = 1000;
                 for j = 1:length(WS)
@@ -399,12 +408,11 @@ end
         Sur = ones(1,1001);
         WSnew = 1;
         for i = 1:length(Thrust)
-            i
             T = Thrust(i);
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                MTOW = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
+                MTOW = WeightEstimate(Sur(i),T,AR, taper, sweep, M_ff);
                 T0W0 = T/MTOW;
 
                 xold = .05;
@@ -424,7 +432,6 @@ end
                     Sur(i) = Snew;
                 end
             end
-            %WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW);
         end
         TTO = Thrust;
         STO = Sur;
@@ -436,7 +443,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, MTOW*TWConvert(6));
+                W0 = WeightEstimate(Sur(i),T,AR, taper, sweep, M_ff);
                 Snew = W0./ws;                                              % Why is ws fixed ???????????????????????????????
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
@@ -477,7 +484,7 @@ end
         for S_loop = 1:(5000/10)
             for T_loop = 1:(50000/100)
 
-                W0_loop = WeightEstimate(S_loop*10,T_loop*100,AR, taper, sweep, MTOW);
+                W0_loop = WeightEstimate(S_loop*10,T_loop*100,AR, taper, sweep, M_ff);
                 Swet = S_Fuselage + 2*S_loop*10 +2*S_HTail+2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                                       % ft^2                     
                 CD0_ = Cf*Swet/(S_loop*10);
                 CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
@@ -501,7 +508,7 @@ end
     
             S_loop = Surface(ii);
             T_loop = round(C(1,ii));
-            W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, MTOW);
+            W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff);
             Swet = S_Fuselage + 2*S_loop + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                       
             CD0_ = Cf*Swet/(S_loop);
             CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
