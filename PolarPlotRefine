@@ -1,24 +1,34 @@
-function [] = PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a)
-% Select, Ctrl+T, Copy, Ctrl+R
+function [CD0] = PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a, AR, cfc, df, Af)% Select, Ctrl+T, Copy, Ctrl+R
 % Run in Command Window
 %%
-% k = 1; % (1-5) Surface Choice
+% % (1-5) Surface Choice
+% k = 2;                                        % Updated 11/15/2017
 % Mcr = [0.85];
 % % Component order
 % % Wing, VTail, HTail, Fuselage, Nacelle
 % % length
-% l = [0, 0, 0, 0, 0]; 
+% l = [10.17, 12.649, 9.523, 91.914, 18.333];   % Updated 11/15/2017
 % % Thickness
-% t = [0, 0, 0, 0, 0];
+% t = [2, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
 % % Chord wise location of max airfoil thickness
-% xc = [0, 0, 0];
+% xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
 % % Componentwise Sweep (deg)
-% Lm = [0, 0, 0]
-% Swet = [0, 0, 0, 0, 0]
-% Sref = 1017; % Reference area (Either it's wing or aircraft ???)
-% V = [0, 0]; % Takeoff, Landing Velocity
-% a = [0, 0]; % Takeoff, Landing Speed of sound
-% PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a)
+% Lm = [27, 52.80, 40.54];                      % Updated 11/15/2017
+% Swet = [2007.319, 324.982, 486.713, 2155.47, 613.204]; % Updated 11/15/2017
+% % Wing Reference area
+% Sref = 1017;                                  % Updated 11/15/2017
+% % Takeoff, Landing Velocity (ft/s)
+% V = [196.533, 157.96];                        % Updated 11/15/2017
+% % Takeoff, Landing Speed of sound
+% a = 1116.13;                                  % Updated 11/15/2017
+% AR = 12;                                      % Updated 11/15/2017
+% % Flap cord percent
+% cfc = 0.17;                                   % Updated 11/15/2017
+% % Flap deflection
+% df = 30;                                      % Updated 11/15/2017
+% % Flapped area percent
+% Af = 225.24/Sref;                             % Updated 11/15/2017
+% PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a, AR, cfc, df, Af)
 
 %%
 % Skin Roughness Value
@@ -27,17 +37,19 @@ function [] = PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a)
 K = [3.33, 2.08, 1.33, 0.5, 0.17]*10^-5;
 % CD0 Drag = CDparasite + CDmisc + CDLP
 % Component Reynolds number (Transonic)
-ReTo = rho*V*l/mu; % Takeoff Reynolds
+rho = 23.77*10^-4;
+mu = 3.737*10^-7;
+ReTo = rho*V(1)*l/mu; % Takeoff Reynolds
 ReCr = 44.62*(l/K(k)).^(1.053)*Mcr^1.16; % Cruise Reynolds
-ReLa = rho*V*l/mu; % Landing Reynolds
+ReLa = rho*V(2)*l/mu; % Landing Reynolds
 % Parasite Drag
 % Laminar
 Cf_laminarTo   = 1.328./sqrt(ReTo);
 Cf_laminarCr   = 1.328./sqrt(ReCr);
 Cf_laminarLa   = 1.328./sqrt(ReLa);
 % Turbulent
-Mto = V(1)/a(1);
-Mla = V(2)/a(2);
+Mto = V(1)/a;
+Mla = V(2)/a;
 Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
 Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*Mcr.^2).^0.65);
 Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
@@ -74,7 +86,7 @@ CD_para = sum(num,2)/Sref;
 % Landing Gear;
 CD_landgear = 0; % <------ Still need to calculate
 % Flaps
-CD_flaps = 0;
+CD_flaps = 1.7*(cfc)^1.38*(Af)*(sind(df))^2;
 % Leakages and Proturbances Drag
 % 2 - 5 % of parasite drag
 CD_LP   = CD_para*1.035;
@@ -84,5 +96,22 @@ CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
             CD_para(2) + CD_LP(2);
             CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
             CD_para(3) + CD_flaps + CD_LP(3)];
+e = 4.61*(1-0.045*AR^0.68)*(cosd(Lm(1)))^0.15-3.1;
+K = 1/(pi*AR*e);
 
 
+
+Clmin = [-2,-2,-2,-2,-2];
+Clmax = [2,2,2,2,2];
+CL = [linspace(Clmin(1),Clmax(1),1000);
+    linspace(Clmin(2),Clmax(2),1000);
+    linspace(Clmin(3),Clmax(3),1000);
+    linspace(Clmin(4),Clmax(4),1000);
+    linspace(Clmin(5),Clmax(5),1000)];
+CD = CD0 + K.*CL.^2;
+hold on
+plot(CD(1,:),CL(1,:))
+plot(CD(2,:),CL(2,:))
+plot(CD(3,:),CL(3,:))
+plot(CD(4,:),CL(4,:))
+plot(CD(5,:),CL(5,:))
