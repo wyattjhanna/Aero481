@@ -1,9 +1,9 @@
-function [] = PolarPlotRefine(k, M, l, t, xc, Lm, Swet, Sref)
+function [] = PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a)
 % Select, Ctrl+T, Copy, Ctrl+R
 % Run in Command Window
 %%
 % k = 1; % (1-5) Surface Choice
-% M = 0.85;
+% Mcr = [0.85];
 % % Component order
 % % Wing, VTail, HTail, Fuselage, Nacelle
 % % length
@@ -16,7 +16,9 @@ function [] = PolarPlotRefine(k, M, l, t, xc, Lm, Swet, Sref)
 % Lm = [0, 0, 0]
 % Swet = [0, 0, 0, 0, 0]
 % Sref = 1017; % Reference area (Either it's wing or aircraft ???)
-% PolarPlotRefine(k, M, l, t, xc, Lm, Swet, Sref)
+% V = [0, 0]; % Takeoff, Landing Velocity
+% a = [0, 0]; % Takeoff, Landing Speed of sound
+% PolarPlotRefine(k, Mcr, l, t, xc, Lm, Swet, Sref, V, a)
 
 %%
 % Skin Roughness Value
@@ -25,40 +27,62 @@ function [] = PolarPlotRefine(k, M, l, t, xc, Lm, Swet, Sref)
 K = [3.33, 2.08, 1.33, 0.5, 0.17]*10^-5;
 % CD0 Drag = CDparasite + CDmisc + CDLP
 % Component Reynolds number (Transonic)
-R = 44.62*(l/K(k)).^(1.053)*M^1.16;
+ReTo = rho*V*l/mu; % Takeoff Reynolds
+ReCr = 44.62*(l/K(k)).^(1.053)*Mcr^1.16; % Cruise Reynolds
+ReLa = rho*V*l/mu; % Landing Reynolds
 % Parasite Drag
 % Laminar
-Cf_laminar   = 1.328./sqrt(R);
+Cf_laminarTo   = 1.328./sqrt(ReTo);
+Cf_laminarCr   = 1.328./sqrt(ReCr);
+Cf_laminarLa   = 1.328./sqrt(ReLa);
 % Turbulent
-Cf_turbulent = 0.455./((log10(R)).^2.58.*(1+0.144.*M.^2).^0.65);
+Mto = V(1)/a(1);
+Mla = V(2)/a(2);
+Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
+Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*Mcr.^2).^0.65);
+Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
 % Average of Laminar and turbulent
-Cf_avg       = (Cf_laminar + Cf_turbulent)./2;
+Cfc_avg        = [(Cf_laminarTo + Cf_turbulentTo)./2;
+                    (Cf_laminarCr + Cf_turbulentCr)./2;
+                    (Cf_laminarLa + Cf_turbulentLa)./2];
 
 % Component Form Factors
 % Wing, VTail, HTail
 tc     = t(1:3)/l(1:3);
-FFcomp = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cosd(Lm).^0.28);
-
+FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cosd(Lm).^0.28);
+FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mcr^0.18*cosd(Lm).^0.28);
+FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cosd(Lm).^0.28);
 % length/thickness for fuselage and nacelle
-f_fuse = l(4)/t(4);
-f_nace = l(5)/t(5);
+f_fuse   = l(4)/t(4);
+f_nace   = l(5)/t(5);
 % Fuselage
-FFfuse = (1 + 60/f_fuse^3 + f_fuse/400);
+FFfuse   = (1 + 60/f_fuse^3 + f_fuse/400);
 % Nacelle
-FFnace = 1 + 0.35/f_nace;
+FFnace   = 1 + 0.35/f_nace;
 
-FFc    = [FFcomp, FFfuse, FFnace];
+FFc      = [FFcompTo, FFfuse, FFnace;
+            FFcompCr, FFfuse, FFnace;
+            FFcompLa, FFfuse, FFnace];
 
 % Interference Factor
 % [Ranges based on fillet(1.1-1.4),
-Qc      = [1.1, 1.03, 1.03, 1, 1.3];
+Qc      = [1.1, 1.06, 1.06, 1, 1.3];
 
-num     = Cf_avg.*FFc.*Qc.*Swet;
-CD_para = sum(num)/Sref; 
+num     = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swet;Swet;Swet];
+CD_para = sum(num,2)/Sref; 
 % Miscellaneous Drag (Landing Gear, Flaps)
-CD_misc = 0; % <------ Still need to calculate
+% Landing Gear;
+CD_landgear = 0; % <------ Still need to calculate
+% Flaps
+CD_flaps = 0;
 % Leakages and Proturbances Drag
 % 2 - 5 % of parasite drag
 CD_LP   = CD_para*1.035;
 
-CD0     = CD_para + CD_misc + CD_LP;
+CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
+            CD_para(1) + CD_flaps + CD_LP(1);
+            CD_para(2) + CD_LP(2);
+            CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
+            CD_para(3) + CD_flaps + CD_LP(3)];
+
+
