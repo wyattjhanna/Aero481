@@ -12,7 +12,7 @@ Plot_Graphs = 1;         %Turns plotting on and off
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
 AR = 12;                        % Aspect Ratio
-%AR = linspace(11,12,2);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = [12,13,14];        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -29,7 +29,7 @@ sweep       = 27;
 Clmax_to = 1.8;
 Clmax_land = 2.1;
 Clmax_cruise= 1.6;
-Cl_cruise = 1.3;
+Cl_cruise = .6;
 
 M =.85;                         %cruise speed
 Cruise_alt = 55000;             %cruise alititude
@@ -295,6 +295,8 @@ end
         plot(WS(index), Climb(1,6), 'k+', 'LineWidth', 3);
         text(WS(index)+4, Climb(1,6)+.005, 'Design Point', 'fontsize', 16);
         
+        title(['AR = ',num2str(AR)])
+        
         xlabel('W/S (lb/ft^2)','fontsize', 18)
         ylabel('T/W', 'fontsize', 18)
         axis([0,350,0,.5])
@@ -483,11 +485,14 @@ end
         legend('Feasible', 'Not Feasible','Climb 1', 'Climb 2', 'Climb 3', 'Climb 4', 'Climb 5', 'Climb 6', 'Ceiling', 'Cruise', 'Landing', 'Takeoff', 'AutoUpdate', 'off')
         xlabel('S [ft^2]', 'fontsize', 18)
         ylabel('T [lb]', 'fontsize', 18)
+        title(['AR = ',num2str(AR)])
         scatter(1017,32000)
         scatter(761,30753)
 
         
         FuelWeight = ones(500,500);
+        
+        
         
         for S_loop = 400/10:(3000/10)
             for T_loop = 400/100:(50000/100)
@@ -496,9 +501,11 @@ end
                 Swet = S_Fuselage + 2*S_loop*10 +2*S_HTail+2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                                       % ft^2                     
                 CD0_ = Cf*Swet/(S_loop*10);
                 CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
-                W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_)));
-                FuelWeight(T_loop,S_loop) = (W2W3*W0_loop)-W0_loop;
-                S_loop
+                
+                M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_))))^-1;
+                M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
+                
+                FuelWeight(T_loop,S_loop) = M_fff * W0_loop;
             end
         end
         
