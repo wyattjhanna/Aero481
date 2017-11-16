@@ -175,8 +175,8 @@ end
         V_cruise = M * sqrt(1.4*1716*T); % ft/s
                
         Swet = S_Fuselage + 2*Sref + 2*S_HTail+2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail   ;         %Fuselage Surface Area = 2690 ft^2
-        Cfe = .003;
-        Cdo = Cfe*Swet/Sref;
+
+        Cdo = Cf*Swet/Sref;
         %initial cdo pulled from historical data, depends on the landing
         %gear and flaps at different climbs
         Cdo = [.015+.02, .015+.02, .015, 0, .065+.02,.065+.02]+Cdo;
@@ -307,7 +307,6 @@ end
 %% ------------------------ Drag Polar Plot ------------------------
         %Raymr for a business jet
         ws = WS(index); 
-        Cf = 0.003;
         f = Cf*Swet;
         S = MTOW/ws;
         CDoClean = f/S;
@@ -528,8 +527,13 @@ end
             Swet = S_Fuselage + 2*S_loop + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                       
             CD0_ = Cf*Swet/(S_loop);
             CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
-            W2W3 = exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_)));
-            FuelWeight = (W2W3*W0_loop)-W0_loop;
+            
+            M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_))))^-1;
+            M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
+                
+            FuelWeight = M_fff * W0_loop;
+            
+            
             if FuelWeight < Fuelmin
                 Fuelmin = FuelWeight;
                 Design_MTOW = W0_loop;
