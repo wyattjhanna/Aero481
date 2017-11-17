@@ -186,8 +186,9 @@ end
         %given ks for different flights from FAR requirments
         ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
         %e depends on our different configurations during flight
-        e =  [ .775  .775  .825  .825  .725  .725];
-        %      1     2     3     4     5     6       <- Climb #
+        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
+        %      1     2     3     4     5    6       <- Climb #
         Const = pi*AR.*e;
         CL = [Clmax_to, Clmax_to, Cl_cruise, Cl_cruise, Clmax_land, Clmax_land];
         %initialize
@@ -304,39 +305,136 @@ end
         text1 = strcat('TW_WS_plot',AR_text,'.png');
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
-%% ------------------------ Drag Polar Plot ------------------------
-        %Raymr for a business jet
-        ws = WS(index); 
-        f = Cf*Swet;
-        S = MTOW/ws;
-        CDoClean = f/S;
-        eClean = 0.825;
-        CDoTOFup = CDoClean + 0.10;
-        CDoTOFdown = CDoClean + 0.10 + 0.015;
-        eTOF = 0.7725;
-        CDoLFup = CDoClean + 0.055;
-        CDoLFdown = CDoClean + 0.055 + 0.015;
-        eLF = 0.7225;
+% ------------------------ Drag Polar Plot ------------------------
+        % Raymr for a business jet         
+        % Variables
         
-        CLClean = linspace(-Clmax_cruise, Clmax_cruise, 100);
-        CDClean = CDoClean + CLClean.^2./(pi*AR*eClean);
-        CLTO = linspace(-Clmax_to, Clmax_to, 100);
-        CDTOFup = CDoTOFup + CLTO.^2./(pi*AR*eTOF);
-        CDTOFdown = CDoTOFdown + CLTO.^2./(pi*AR*eTOF);
-        CLL = linspace(-Clmax_land, Clmax_land, 100);
-        CDLFup = CDoLFup + CLTO.^2./(pi*AR*eLF);
-        CDLFdown = CDoLFdown + CLTO.^2./(pi*AR*eLF);
+        % Component order
+        % Wing, VTail, HTail, Fuselage, Nacelle
+        % length
+        l = [10.17, 12.649, 9.523, 91.914, 18.333];   % Updated 11/15/2017
+        % Thickness
+        t = [2, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
+        % Chord wise location of max airfoil thickness
+        xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
+        % Wetted Areas
+        St = 184.21;
+        % Changing with Sref input
+        Swetc = [2*Sref, 324.982, 2*St, 2155.47, 613.204];
+        % Component Sweep
+        Lm = [27, 52.80, 40.54];
+        % Takeoff, Landing Velocity (ft/s)
+        V = [196.533, 157.96];                        % Updated 11/15/2017
+        % Takeoff, Landing Speed of sound
+        a = 1116.13;                                  % Updated 11/15/2017
+        % Flap cord percent
+        cfc = 0.17;                                   % Updated 11/15/2017
+        % Flap deflection (deg)
+        df = 30;                                      % Updated 11/15/2017
+        % Flapped area percent
+        Af = 225.24/Sref;                             % Updated 11/15/2017
+
+        % Skin Roughness Value
+        % Camo on Aluminum, Smooth Paint, Production Sheet Metal, Polished Sheet
+        % metal, Smooth molded composite
+        % (1-5) Surface Choice
+        k = 2;                                        % Updated 11/15/2017
+        K = [3.33, 2.08, 1.33, 0.5, 0.17]*10^-5;
         
-        LoD = max(CLClean./CDClean);
+        % CD0 Drag = CDparasite + CDmisc + CDLP
+        % Component Reynolds number (Transonic)
+        rho = 23.77*10^-4;
+        mu = 3.737*10^-7;
+        ReTo = rho*V(1)*l/mu; % Takeoff Reynolds
+        ReCr = 44.62*(l/K(k)).^(1.053)*M^1.16; % Cruise Reynolds
+        ReLa = rho*V(2)*l/mu; % Landing Reynolds
+        % Parasite Drag
+        % Laminar
+        Cf_laminarTo   = 1.328./sqrt(ReTo);
+        Cf_laminarCr   = 1.328./sqrt(ReCr);
+        Cf_laminarLa   = 1.328./sqrt(ReLa);
+        % Turbulent
+        Mto = V(1)/a;
+        Mla = V(2)/a;
+        Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
+        Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*M.^2).^0.65);
+        Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
+        % Average of Laminar and turbulent
+        Cfc_avg        = [(Cf_laminarTo + Cf_turbulentTo)./2;
+                        (Cf_laminarCr + Cf_turbulentCr)./2;
+                        (Cf_laminarLa + Cf_turbulentLa)./2];
+
+        % Component Form Factors
+        % Wing, VTail, HTail
+        tc     = t(1:3)/l(1:3);
+        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cosd(Lm).^0.28);
+        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cosd(Lm).^0.28);
+        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cosd(Lm).^0.28);
+        % length/thickness for fuselage and nacelle
+        f_fuse   = l(4)/t(4);
+        f_nace   = l(5)/t(5);
+        % Fuselage
+        FFfuse   = (1 + 60/f_fuse^3 + f_fuse/400);
+        % Nacelle
+        FFnace   = 1 + 0.35/f_nace;
+
+        FFc      = [FFcompTo, FFfuse, FFnace;
+                FFcompCr, FFfuse, FFnace;
+                FFcompLa, FFfuse, FFnace];
+
+        % Interference Factor
+        % [Ranges based on fillet(1.1-1.4),
+        Qc      = [1.1, 1.06, 1.06, 1, 1.3];
+
+        Ncomp     = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swetc;Swetc;Swetc];
+        CD_para = sum(Ncomp,2)/Sref; 
+        % Miscellaneous Drag (Landing Gear, Flaps)
+        % Landing Gear;
+        DqA = [0.25 0.15 0.18 0.13 0.05 0.3 1.4 1];
+        % Landing gear frontal areas
+        LA = [2.67 2.67 0 0 0 0 0 0];
+        Dqc = DqA.*LA;
+        CD_landgear = 2*1/Sref*(sum(Dqc));
+        % Flaps
+        CD_flaps = 1.7*(cfc)^1.38*(Af)*(sind(df))^2;
+
+        % Leakages and Proturbances Drag
+        % 2 - 5 % of parasite drag
+        CD_LP   = CD_para*1.035;
+
+        CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
+            CD_para(1) + CD_flaps + CD_LP(1);
+            CD_para(2) + CD_LP(2);
+            CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
+            CD_para(3) + CD_flaps + CD_LP(3)];
+        
+        CL = [linspace(-Clmax_to, Clmax_to, 100);
+            linspace(-Clmax_to, Clmax_to, 100);
+            linspace(-Clmax_cruise, Clmax_cruise, 100);
+            linspace(-Clmax_land, Clmax_land, 100);
+            linspace(-Clmax_land, Clmax_land, 100)];
+        
+        CD = [CD0(1) + CL(1,:).^2./(pi*AR*e(1));
+            CD0(2) + CL(2,:).^2./(pi*AR*e(2));
+            CD0(3) + CL(3,:).^2./(pi*AR*e(3));
+            CD0(4) + CL(4,:).^2./(pi*AR*e(5));
+            CD0(5) + CL(5,:).^2./(pi*AR*e(6))];
+        
+        
+        
+        LoD = max(CL(3,:)./CD(3,:));
         plot_drag = sprintf('Max L/D = %f', LoD);
+        
         figure(fig_num)
         set(gcf, 'Position', get(0, 'Screensize'));
         hold on
-        plot(CDClean,CLClean)
-        plot(CDTOFup, CLTO)
-        plot(CDTOFdown, CLTO)
-        plot(CDLFup, CLL)
-        plot(CDLFdown, CLL)
+        
+        plot(CD(3,:),CL(3,:))
+        plot(CD(1,:),CL(1,:))
+        plot(CD(2,:),CL(2,:))
+        plot(CD(4,:),CL(4,:))
+        plot(CD(5,:),CL(5,:))
+        
         xlabel('CD', 'fontsize', 16)
         ylabel('CL', 'fontsize', 16)
         title(plot_drag, 'fontsize', 18)
@@ -349,7 +447,7 @@ end
 %% ------------------------------- TS -------------------------------
         Climb = Climb';
         TWWS = [Takeoff;Cruise];
-        
+        ws = WS(index);
         ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
         
         Tnew = 17745*2; %thrust of our engines
