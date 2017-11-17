@@ -29,7 +29,7 @@ sweep       = 27;
 Clmax_to = 1.8;
 Clmax_land = 2.1;
 Clmax_cruise= 1.6;
-Cl_cruise = .6;
+Cl_cruise = .9;
 
 M =.85;                         %cruise speed
 Cruise_alt = 55000;             %cruise alititude
@@ -113,7 +113,7 @@ end
     end
     end
 %% ------------------- Standard Atmosphere Function -------------------
-    function [Density, Pressure, Temperature] = Standard_Atmosphere(altitude)
+    function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
         
         altitude = round(altitude/3.28084); % Converting ft to m
         
@@ -170,7 +170,7 @@ end
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR));
         % Math Zone
-        [p, ~, T] = Standard_Atmosphere(Cruise_alt);
+        [p, ~, T] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
         p_cruise = p;
         V_cruise = M * sqrt(1.4*1716*T); % ft/s
                
@@ -194,8 +194,8 @@ end
         TW = (0:.5/1000:.5);
         WS = (0:350/1000:350);
         
-        p = Standard_Atmosphere(66); % Takeoff air density (slugs)
-        p_sl = Standard_Atmosphere(2); %air density at sea level (slugs) code wont work at 0 for some reason
+        p = Standard_Atmosphere_IMPERIAL(66); % Takeoff air density (slugs)
+        p_sl = Standard_Atmosphere_IMPERIAL(2); %air density at sea level (slugs) code wont work at 0 for some reason
         
         M_ff = [0.99   0.995 0.995   0.98  0.692  0.9753 0.99    0.9606      0.992];
  
@@ -532,8 +532,7 @@ end
             M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
                 
             FuelWeight = M_fff * W0_loop;
-            
-            
+
             if FuelWeight < Fuelmin
                 Fuelmin = FuelWeight;
                 Design_MTOW = W0_loop;
