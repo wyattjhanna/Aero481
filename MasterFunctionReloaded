@@ -11,8 +11,8 @@ Plot_Graphs = 1;         %Turns plotting on and off
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-AR = 12;                        % Aspect Ratio
-%AR = [12,13,14];        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = ;                        % Aspect Ratio
+AR = [7,9,12,13];        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -51,16 +51,35 @@ sweep = deg2rad(sweep);
 
 num = 1;
 for arinc = 1:length(AR)
-    [~] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
+    [Fuel_weight(arinc),lift(arinc), Plane(arinc)] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
     num = num+3;
+    close all
 end
+
+figure(1)
+plot(AR, Fuel_weight)
+title('FUEL WEIGHT')
+figure(2)
+plot(AR, lift)
+title('LOD')
+figure(3)
+plot(AR, Plane)
+title('MTOW')
 
 %% --------------------- Weight Estimate ---------------------
     function [ W0 ] = WeightEstimate( S, T, AR, taper, sweep, M_ff)
     
+    T = T/2;    
+        
     W0_guess = 100000;
     converge = 99999999;
     
+    Swet = S_Fuselage + 2*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
+    CD0_ = Cf*Swet/(S);
+
+    LOD = (1/2)*sqrt(pi*AR*e(4)/CD0_);
+    %CD_ = (CD0_ + ((Cl_cruise_new)^2 / (pi * AR * e(4))));  
+       
     Mach_sea = 0.2;    
     q = .5*1.4*0.000364*Mach_sea^2;
     c_root = 15;   
@@ -74,14 +93,13 @@ end
     Erev    = 0.034*(T);
     EControl= 0.26*(T)^0.5;
     EStart  = 9.33*(EDry/1000)^1.078;   
-    Engine      = (EDry+EOil+Erev+EControl+EStart)*1.4;
+    Engine      = 2*(EDry+EOil+Erev+EControl+EStart)*1.4;
     
-    Swet = S_Fuselage + 2*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
+    
     
     N_z         = (1.5 * 2.5);  % Ultimate Load Factor
-    CD0_ = Cf*Swet/(S);
-    CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4)))); 
-    M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_))))^-1;
+
+    M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
 
     M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
     
@@ -93,17 +111,17 @@ end
         AllElse = 0.17*W0_guess;        
         
         %Raymber GA
-        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+        %Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
-        Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ 0.5 * (t_c_root)^ -0.4...
+        Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
         * (1+taper)^0.1 * cosd(sweep)^-1 * S_csw^0.1;
         %torenbeek: light transport
         %Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
         %        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
-        Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
-        / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
-        Wing_avg = sum(Wing)/3;
+%         Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+%         / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
+         Wing_avg = Wing(2,:);
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -164,7 +182,7 @@ end
 
     end
 %% --------------------- TW WS, Polar Plots, T-S ---------------------
-    function [Fuelmin, LoD,w_mass] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
+    function [Fuelmin, LoD,Design_MTOW] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
 %% ------------------------------ TW WS ------------------------------
 
         %naming of picture file
@@ -451,8 +469,8 @@ end
         ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
         
         Tnew = 17745*2; %thrust of our engines
-        Surface = 400:1:1600;
-        Thrust = ones(1,1001);
+        Surface = 700:1:1600;
+        Thrust = ones(1,length(Surface));
         %Climbs
         for n = 1:7
             for i = 1:length(Surface)
@@ -473,6 +491,8 @@ end
             end
             C(n,:)= Thrust;
         end
+        
+       fprintf('TS CLIMB - COMPLETE \n');
         
         %Cruise
         Cr = ones(1,length(Surface));
@@ -502,6 +522,8 @@ end
                 end
             end
         end
+        
+        fprintf('TS CRUISE - COMPLETE \n');
         
         % Takeoff
         Thrust = linspace(1000,100000,1001);
@@ -543,6 +565,9 @@ end
         TTO = Thrust;
         STO = Sur;
         Thrust = linspace(0,70000,1001);
+        
+        fprintf('TS TAKEOFF - COMPLETE \n');
+        
         % Landing
         Snew = MTOW / ws;
         for i = 1:length(Thrust)
@@ -559,6 +584,9 @@ end
                 end
             end
         end
+        
+        fprintf('TS ALL CALCULATIONS - COMPLETE \n');
+        
         Tlan = Thrust;
         Slan = Sur;
         %LD = CLClean./CDClean;
@@ -570,7 +598,7 @@ end
         % area(Surface, C(6,:), .5, 'EdgeColor', 'none', 'FaceColor', [1,1,1]);
         % plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',STO,TTO,'m','LineWidth',1)
         %plot(Surface,C,Surface,Cr,'k',STO,TTO,'m','LineWidth',1)
-        axis([400,1600, 5000, 50000])
+        axis([700,1600, 5000, 50000])
         
         Slan(1,1001:2001) = linspace(max(Slan),10000000,1001);
         Tlan(1,1001:2001) = max(Tlan);
@@ -596,10 +624,9 @@ end
 
                 W0_loop = WeightEstimate(S_loop*10,T_loop*100,AR, taper, sweep, M_ff);
                 Swet = S_Fuselage + 2*S_loop*10 +2*S_HTail+2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                                       % ft^2                     
-                CD0_ = Cf*Swet/(S_loop*10);
-                CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
-                
-                M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_))))^-1;
+                CD0_ = Cf*Swet/(S_loop);
+                LOD = (1/2)*sqrt(pi*AR*e(4)/CD0_);
+                M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
                 M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
                 
                 FuelWeight(T_loop,S_loop) = M_fff * W0_loop;
@@ -624,9 +651,8 @@ end
             W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff);
             Swet = S_Fuselage + 2*S_loop + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                       
             CD0_ = Cf*Swet/(S_loop);
-            CD_ = (CD0_ + ((Cl_cruise)^2 / (pi * AR * e(4))));
-            
-            M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(Cl_cruise/CD_))))^-1;
+            LOD = (1/2)*sqrt(pi*AR*e(4)/CD0_);
+            M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
             M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
                 
             FuelWeight = M_fff * W0_loop;
