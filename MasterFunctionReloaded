@@ -494,6 +494,27 @@ title('MTOW')
         
        fprintf('TS CLIMB - COMPLETE \n');
         
+        %Climbs
+        for n = 1:7
+            for i = 1:length(Surface)
+                Swing = Surface(i);
+                converge = 0;
+                Thrust(i) = Tnew;
+                while converge == 0
+                    
+                    W0 = WeightEstimate(Swing,Thrust(i),AR, taper, sweep, M_ff);
+                    TWnew = ClimbCoe(n);
+                    Tnew = TWnew.*W0;
+                    if abs(Thrust(i)-Tnew) < dt
+                        converge = 1;
+                    else
+                        Thrust(i) = Tnew;
+                    end
+                end
+            end
+            C(n,:)= Thrust;
+        end
+        
         %Cruise
         Cr = ones(1,length(Surface));
         for i = 1:length(Surface)
@@ -509,8 +530,6 @@ title('MTOW')
                     x = abs(WS(j)-W0S0);
                     if xold > x
                         TWnew = TWWS(2,j);
-                    else
-                        xold = x;
                     end
                 end
                 Tnew = TWnew.*W0;
@@ -523,50 +542,35 @@ title('MTOW')
             end
         end
         
-        fprintf('TS CRUISE - COMPLETE \n');
-        
         % Takeoff
-        Thrust = linspace(1000,100000,1001);
-        
-        Snew = MTOW / ws;               %wing loading divided by our weight
-        Sur = ones(1,1001);
-        WSnew = 1;
-        for i = 1:length(Thrust)
-            T = Thrust(i);
+        To = ones(1,length(Surface));
+        for i = 1:length(Surface)
+            Tnew = 17745*2;
+            Swing = Surface(i);
             converge = 0;
-            Sur(i) = Snew;
+            To(i) = Tnew;
             while converge == 0
-                MTOW = WeightEstimate(Sur(i),T,AR, taper, sweep, M_ff);
-                T0W0 = T/MTOW;
-
-                xold = .05;
-                for j = 1:length(Takeoff)
-                    x = abs(Takeoff(j)-T0W0);
+                W0 = WeightEstimate(Swing,To(i),AR, taper, sweep, M_ff);
+                W0S0 = W0/Swing;
+                xold = 1000;
+                for j = 1:length(WS)
+                    x = abs(WS(j)-W0S0);
                     if xold > x
-                        WSnew = WS(j);
-                    else
-                        xold = x;
+                        TWnew = TWWS(1,j);
                     end
                 end
-                Snew = MTOW./WSnew;
-                dt_check = abs(Sur(i)-Snew);
-                if  dt_check < dt
+                Tnew = TWnew.*W0;
+                
+                if abs(To(i)-Tnew) < dt
                     converge = 1;
                 else
-                    Sur(i) = Snew;
-                end
-                
-                if Snew > 1000000
-                    fprintf('CONVERGENCE FAILED - Snew > 1,000,000 \n')
-                    break
+                    To(i) = Tnew;
                 end
             end
-        end
-        TTO = Thrust;
-        STO = Sur;
-        Thrust = linspace(0,70000,1001);
+        end        
         
-        fprintf('TS TAKEOFF - COMPLETE \n');
+        Thrust = linspace(100,70000,1001);
+        Sur = ones(1,length(Thrust));
         
         % Landing
         Snew = MTOW / ws;
@@ -584,9 +588,6 @@ title('MTOW')
                 end
             end
         end
-        
-        fprintf('TS ALL CALCULATIONS - COMPLETE \n');
-        
         Tlan = Thrust;
         Slan = Sur;
         %LD = CLClean./CDClean;
