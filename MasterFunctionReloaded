@@ -11,8 +11,8 @@ Plot_Graphs = 1;         %Turns plotting on and off
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-%AR = ;                        % Aspect Ratio
-AR = [7,9,12,13];        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 25;                        % Aspect Ratio
+AR = [11,13,15,17,19,21];        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -184,6 +184,8 @@ title('MTOW')
 %% --------------------- TW WS, Polar Plots, T-S ---------------------
     function [Fuelmin, LoD,Design_MTOW] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
 %% ------------------------------ TW WS ------------------------------
+
+        fprintf('--------------- AR %d ---------------\n \n',AR);
 
         %naming of picture file
         AR_text = strcat(' AR = ', num2str(AR));
@@ -469,7 +471,9 @@ title('MTOW')
         ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
         
         Tnew = 17745*2; %thrust of our engines
+        
         Surface = 700:1:1600;
+        
         Thrust = ones(1,length(Surface));
         %Climbs
         for n = 1:7
@@ -674,7 +678,7 @@ title('MTOW')
         
         Sland_final = 80 * (Design_MTOW - Fuelmin)/ DesignS * (1/((0.0024/p_sl)*Clmax_land)) + Sa;
         
-        fprintf('Landing Length: %f ft \n', Sland_final);
+        fprintf('Landing Length: %f ft \n \n', Sland_final);
         
         if Plot_Graphs == 1        
                 plot(Surface(Fuelminii),C(6,Fuelminii), 'k+', 'LineWidth', 2);
