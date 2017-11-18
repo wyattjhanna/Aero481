@@ -11,8 +11,8 @@ Plot_Graphs = 1;         %Turns plotting on and off
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-%AR = 25;                        % Aspect Ratio
-AR = [11,13,15,17,19,21];        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = 12;                        % Aspect Ratio
+%AR = [11,13,15,17,19,21];        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -53,7 +53,7 @@ num = 1;
 for arinc = 1:length(AR)
     [Fuel_weight(arinc),lift(arinc), Plane(arinc)] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
     num = num+3;
-    close all
+    %close all
 end
 
 figure(1)
@@ -472,7 +472,7 @@ title('MTOW')
         
         Tnew = 17745*2; %thrust of our engines
         
-        Surface = 700:1:1600;
+        Surface = 700:2:1600;
         
         Thrust = ones(1,length(Surface));
         %Climbs
@@ -620,39 +620,18 @@ title('MTOW')
         scatter(761,30753)
 
         
-        FuelWeight = ones(500,500);
-        
-        
-        
-        for S_loop = 400/10:(3000/10)
-            for T_loop = 400/100:(50000/100)
-
-                W0_loop = WeightEstimate(S_loop*10,T_loop*100,AR, taper, sweep, M_ff);
-                Swet = S_Fuselage + 2*S_loop*10 +2*S_HTail+2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                                       % ft^2                     
-                CD0_ = Cf*Swet/(S_loop);
-                LOD = (1/2)*sqrt(pi*AR*e(4)/CD0_);
-                M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
-                M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
-                
-                FuelWeight(T_loop,S_loop) = M_fff * W0_loop;
-            end
-        end
-        
-        T = 1:100:50000;
-        S = 1:10:5000;
-        
-        v = [22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,45,50,60,70,80,90,100]*1000;
-        
-        if Plot_Graphs == 1
-            contour(S,T,FuelWeight,v,'ShowText','on')
-        end
+        FuelWeight = ones(length(Surface),length(Surface));
         
         Fuelmin = 9999999;
         
-        for ii = 1:length(Surface)
-    
-            S_loop = Surface(ii);
-            T_loop = round(C(1,ii));
+        T = linspace(50000,5000,length(FuelWeight));
+        S = linspace(1600,700,length(FuelWeight));
+        
+        for i = 1:length(Surface)
+            for j = 1:length(Surface)
+                
+            S_loop = S(i);
+            T_loop = T(j);                                                                     % CHECK WHAT C VALUE 1 OR 6
             W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff);
             Swet = S_Fuselage + 2*S_loop + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                       
             CD0_ = Cf*Swet/(S_loop);
@@ -660,20 +639,27 @@ title('MTOW')
             M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
             M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
                 
-            FuelWeight = M_fff * W0_loop;
-
-            if FuelWeight < Fuelmin
-                Fuelmin = FuelWeight;
-                Design_MTOW = W0_loop;
-                DesignS = S_loop;
-                Fuelminii = ii;
+            FuelWeight(i,j) = M_fff * W0_loop;
+                if FuelWeight(i,j) < Fuelmin
+                    Fuelmin = FuelWeight(i,j);
+                    Design_MTOW = W0_loop;
+                    DesignS = S_loop;
+                    DesignT = T_loop;
+                end
             end
+        end
+       
+        
+        v = [22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,45,50,60,70,80,90,100]*1000;
+        
+        if Plot_Graphs == 1
+            contour(S,T,FuelWeight',v,'ShowText','on')
         end
         
         fprintf('Design MTOW %f lbs \n', Design_MTOW);
         fprintf('Fuel Weight %f lbs \n', Fuelmin);
         fprintf('Empty Weight %f lbs \n \n', Design_MTOW - Fuelmin);
-        fprintf('Thrust %f lbs \n', C(1,Fuelminii));
+        fprintf('Thrust %f lbs \n', DesignT);
         fprintf('Refrence Area %f ft^3 \n \n', DesignS);
         
         Sland_final = 80 * (Design_MTOW - Fuelmin)/ DesignS * (1/((0.0024/p_sl)*Clmax_land)) + Sa;
@@ -681,16 +667,13 @@ title('MTOW')
         fprintf('Landing Length: %f ft \n \n', Sland_final);
         
         if Plot_Graphs == 1        
-                plot(Surface(Fuelminii),C(6,Fuelminii), 'k+', 'LineWidth', 2);
-                text(Surface(Fuelminii)+25, C(6,Fuelminii)-500, 'Design Point');
+                plot(DesignS,DesignT, 'k+', 'LineWidth', 2);
+                text(DesignS+25, DesignT-500, 'Design Point');
                 set(gca,'XTick',200:200:1600)
                 set(gca,'XTickLabel',200:200:1600)
 
                 text1 = strcat('TSplot',AR_text,'.png');
-                saveas(figure(fig_num),text1)
-                
-                
-                
+                saveas(figure(fig_num),text1) 
         end
     end
 end 
