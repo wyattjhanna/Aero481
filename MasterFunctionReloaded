@@ -325,6 +325,9 @@ title('MTOW')
         text1 = strcat('TW_WS_plot',AR_text,'.png');
         saveas(figure(fig_num),text1)
         fig_num = fig_num+1;
+% ------------------------ CGxz Locations -------------------------
+        CGx = 61.2;
+        CGz = 7.02;
 % ------------------------ Drag Polar Plot ------------------------
         % Raymr for a business jet         
         % Variables
@@ -353,7 +356,10 @@ title('MTOW')
         df = 30;                                      % Updated 11/15/2017
         % Flapped area percent
         Af = 225.24/Sref;                             % Updated 11/15/2017
-
+        % Tail Aspect Ratio
+        ARt = 2.86;
+        % Leading Edge x location
+        LEx = [45.565 89.612];
         % Skin Roughness Value
         % Camo on Aluminum, Smooth Paint, Production Sheet Metal, Polished Sheet
         % metal, Smooth molded composite
@@ -428,17 +434,25 @@ title('MTOW')
             CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
             CD_para(3) + CD_flaps + CD_LP(3)];
         
+        
         CL = [linspace(-Clmax_to, Clmax_to, 100);
             linspace(-Clmax_to, Clmax_to, 100);
             linspace(-Clmax_cruise, Clmax_cruise, 100);
             linspace(-Clmax_land, Clmax_land, 100);
             linspace(-Clmax_land, Clmax_land, 100)];
         
-        CD = [CD0(1) + CL(1,:).^2./(pi*AR*e(1));
-            CD0(2) + CL(2,:).^2./(pi*AR*e(2));
-            CD0(3) + CL(3,:).^2./(pi*AR*e(3));
-            CD0(4) + CL(4,:).^2./(pi*AR*e(5));
-            CD0(5) + CL(5,:).^2./(pi*AR*e(6))];
+        % CDtrim          
+        CDtrim  = 0.0295.*CL.^2 + 0.0004.*CL + 0.0004;
+        
+        CLmindrag = 0.5;
+        CLmins = CLmindrag*[1;1;1;1;1];
+        CLmin = CLmins.*ones(size(CL));
+        
+        CD = [CD0(1) + CDtrim(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi*AR*e(1));
+            CD0(2) + CDtrim(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi*AR*e(2));
+            CD0(3) + CDtrim(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi*AR*e(3));
+            CD0(4) + CDtrim(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi*AR*e(5));
+            CD0(5) + CDtrim(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi*AR*e(6))];
         
         
         
