@@ -607,7 +607,7 @@ title('MTOW')
         area(Slan, Tlan, .5, 'EdgeColor', 'none', 'FaceColor', [.8 .9 1]);
         area(Surface, C(6,:), .5, 'EdgeColor', 'none', 'FaceColor', [1,1,1]);
         legend('AutoUpdate', 'off')
-        plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',STO,TTO,'m','LineWidth',1)
+        plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',Surface,To,'m','LineWidth',1)
         legend('Feasible', 'Not Feasible','Climb 1', 'Climb 2', 'Climb 3', 'Climb 4', 'Climb 5', 'Climb 6', 'Ceiling', 'Cruise', 'Landing', 'Takeoff', 'AutoUpdate', 'off')
         xlabel('S [ft^2]', 'fontsize', 18)
         ylabel('T [lb]', 'fontsize', 18)
