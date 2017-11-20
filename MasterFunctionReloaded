@@ -4,7 +4,7 @@ clc
 clear all
 close all
 dt = 10;                 %weight convergence number
-Surface_Fineness = 3;    % Adjusts linspace of Surface, lower numbers compute slower.
+Surface_Fineness = 15;    % Adjusts linspace of Surface, lower numbers compute slower.
 Plot_Graphs = 0;         %Turns plotting on and off
 
 %% ------------------ Global Variables for Functions ------------------
@@ -13,7 +13,7 @@ Plot_Graphs = 0;         %Turns plotting on and off
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
 %AR = 8;                        % Aspect Ratio
-AR = linspace(5,14,5);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = linspace(6,14,30);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -51,9 +51,18 @@ Sref_Guess = 1100;               % Wing area (ft^2)
 sweep = deg2rad(sweep);
 
 num = 1;
+BestOverallFuel = 999999999;
 for arinc = 1:length(AR)
     [Fuel_weight(arinc),lift(arinc), Plane(arinc), DesignS(arinc)] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
     num = num+3;
+    
+    if Fuel_weight(arinc) < BestOverallFuel
+        BestOverallFuel = Fuel_weight(arinc);
+        BestOverallAR = AR(arinc);
+        BestOverallMTOW = Plane(arinc);
+        BestOverallEmpty = Plane(arinc) - Fuel_weight(arinc);
+    end
+    
     if length(AR) > 1
     close all
     end
@@ -81,7 +90,10 @@ title('FUEL WEIGHT')
 
 fprintf('--------------- CONCLUSIONS ---------------\n \n');
 
-
+fprintf('Best Aspect Ratio: %f \n', BestOverallAR);
+fprintf(' -Fuel Burn: %.1f lbs\n', BestOverallFuel);
+fprintf(' -MTOW     : %.1f lbs\n', BestOverallMTOW)
+fprintf(' -Empty Wt : %.1f lbs\n', BestOverallEmpty)
 
 end
 %% --------------------- Weight Estimate ---------------------
@@ -137,7 +149,7 @@ end
          Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
          / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
      
-        Wing_avg = (Wing(1,:)+Wing(2,:)+Wing(3,:))/2;
+        Wing_avg = (Wing(1,:)+Wing(2,:)+Wing(3,:))/3;
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
