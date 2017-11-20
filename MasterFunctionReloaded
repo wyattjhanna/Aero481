@@ -4,6 +4,7 @@ clc
 clear all
 close all
 dt = 10;                 %weight convergence number
+Surface_Fineness = 3;    % Adjusts linspace of Surface, lower numbers compute slower.
 Plot_Graphs = 0;         %Turns plotting on and off
 
 %% ------------------ Global Variables for Functions ------------------
@@ -12,7 +13,7 @@ Plot_Graphs = 0;         %Turns plotting on and off
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
 %AR = 8;                        % Aspect Ratio
-AR = linspace(5,14,10);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = linspace(5,14,5);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -61,23 +62,26 @@ end
 if length(AR) > 1
 
 figure(1)
-plot(AR, Fuel_weight)
-plot(AR, Plane)
- plot(AR, Plane - Fuel_weight)
- title('WEIGHTS')
- legend('Fuel Weight','MTOW','EMPTY WEIGHT')
- 
+hold on
+plot(AR,Plane,AR, Plane - Fuel_weight)
+title('WEIGHTS')
+legend('MTOW','EMPTY WEIGHT')
+
 figure(2)
 plot(AR, lift)
 title('LOD')
+
 figure(3)
-plot(AR, Plane)
 plot(AR, DesignS)
- title('Refrence Area')
- 
+title('Refrence Area')
+
 figure(4)
-plot(AR, Plane - Fuel_weight)
-title('EMPTY WEIGHT')
+plot(AR,Fuel_weight)
+title('FUEL WEIGHT')
+
+fprintf('--------------- CONCLUSIONS ---------------\n \n');
+
+
 
 end
 %% --------------------- Weight Estimate ---------------------
@@ -114,7 +118,7 @@ end
 
     M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
     
-    while converge > 0.01
+    while converge > 0.1
         
         Fuel = M_fff*W0_guess;
 
@@ -132,7 +136,8 @@ end
         %Nicolai General Dynamics transport
          Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
          / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
-         Wing_avg = mean(Wing);
+     
+        Wing_avg = (Wing(1,:)+Wing(2,:)+Wing(3,:))/2;
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -220,6 +225,7 @@ end
         %e depends on our different configurations during flight
         %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
         eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
+        fprintf('e clean = %f \n\n', eclean);
         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         %      1              2            3       4        5            6       <- Climb #
         
@@ -506,12 +512,12 @@ end
         ws = WS(index);
         ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
         
-        cf_climbs = [Cfc_avg(1), Cfc_avg(1) , Cfc_avg(1) , Cfc_avg(2) , Cfc_avg(3) , Cfc_avg(3),  Cfc_avg(2)] 
+        cf_climbs = [Cfc_avg(1), Cfc_avg(1) , Cfc_avg(1) , Cfc_avg(2) , Cfc_avg(3) , Cfc_avg(3),  Cfc_avg(2)];
         
         
         Tnew = 17745*2; %thrust of our engines
         
-        Surface = 700:2:1600;
+        Surface = 700:Surface_Fineness:1600;
         
         Thrust = ones(1,length(Surface));
         %Climbs
@@ -535,7 +541,7 @@ end
             C(n,:)= Thrust;
         end
         
-       fprintf('TS CLIMB - COMPLETE \n');
+       fprintf('TS CLIMB      - COMPLETE \n');
         
         %Cruise
         Cr = ones(1,length(Surface));
@@ -613,7 +619,7 @@ end
                 end
             end
         end
-        fprintf('TS LAND - COMPLETE \n\n');
+        fprintf('TS LAND       - COMPLETE \n');
         
         Tlan = Thrust;
         Slan = Sur;
@@ -678,6 +684,8 @@ end
         
          Fuelmin = 9999999;
          
+         fprintf('FUEL CONTOURS - COMPLETE \n\n');
+         
          for ii = 1:length(Surface)
      
              S_loop = Surface(ii);
@@ -694,6 +702,7 @@ end
              if FuelWeight < Fuelmin
                  Fuelmin = FuelWeight;
                  Design_MTOW = W0_loop;
+                 DesignLOD = LOD;
                  DesignS = S_loop;
                  Fuelminii = ii;
              end
@@ -703,7 +712,9 @@ end
          fprintf('Fuel Weight %f lbs \n', Fuelmin);
          fprintf('Empty Weight %f lbs \n \n', Design_MTOW - Fuelmin);
          fprintf('Thrust %f lbs \n', C(1,Fuelminii));
+         fprintf('Design LOD %f lbs \n', DesignLOD);
          fprintf('Refrence Area %f ft^3 \n \n', DesignS);
+         
         
         Sland_final = 80 * (Design_MTOW - Fuelmin)/ DesignS * (1/((0.0024/p_sl)*Clmax_land)) + Sa;
         
