@@ -4,15 +4,15 @@ clc
 clear all
 close all
 dt = 10;                 %weight convergence number
-Plot_Graphs = 1;         %Turns plotting on and off
+Plot_Graphs = 0;         %Turns plotting on and off
 
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-AR = 8;                        % Aspect Ratio
-%AR = linspace(5,14,20);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 8;                        % Aspect Ratio
+AR = linspace(5,14,7);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -51,7 +51,7 @@ sweep = deg2rad(sweep);
 
 num = 1;
 for arinc = 1:length(AR)
-    [Fuel_weight(arinc),lift(arinc), Plane(arinc)] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
+    [Fuel_weight(arinc),lift(arinc), Plane(arinc), DesignS(arinc)] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
     num = num+3;
     if length(AR) > 1
     close all
@@ -61,17 +61,24 @@ end
 if length(AR) > 1
 
 figure(1)
+hold on
 plot(AR, Fuel_weight)
-title('FUEL WEIGHT')
+plot(AR, Plane)
+plot(AR, Plane - Fuel_weight)
+title('WEIGHTS')
+legend('Fuel Weight','MTOW','EMPTY WEIGHT')
+
 figure(2)
 plot(AR, lift)
 title('LOD')
+
 figure(3)
-plot(AR, Plane)
-title('MTOW')
-figure(4)
-plot(AR, Plane - Fuel_weight)
-title('EMPTY WEIGHT')
+plot(AR, DesignS)
+title('Refrence Area')
+
+% figure(4)
+% plot(AR, Plane - Fuel_weight)
+% title('EMPTY WEIGHT')
 
 end
 %% --------------------- Weight Estimate ---------------------
@@ -118,15 +125,15 @@ end
         %Raymber GA
         %Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
-        Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
-        * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
+%         Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
+%         * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         %torenbeek: light transport
         %Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
         %        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
-%         Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
-%         / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
-         Wing_avg = Wing(2,:);
+        Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+        / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
+         Wing_avg = Wing(3,:);
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -187,7 +194,7 @@ end
 
     end
 %% --------------------- TW WS, Polar Plots, T-S ---------------------
-    function [Fuelmin, LoD,Design_MTOW] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
+    function [Fuelmin, LoD,Design_MTOW,DesignS] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
 %% ------------------------------ TW WS ------------------------------
 
         fprintf('--------------- AR %f ---------------\n \n',AR);
