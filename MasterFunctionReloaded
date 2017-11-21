@@ -8,7 +8,7 @@ Surface_Fineness = 15;    % Adjusts linspace of Surface, lower numbers compute s
 Plot_Graphs = 0;         %Turns plotting on and off
 
 TS_Xmin = 700;
-TS_Xmax = 3000;
+TS_Xmax = 1800;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
@@ -31,7 +31,7 @@ sweep       = 27;
 
 Clmax_to = 1.8;
 Clmax_land = 2.1;
-Clmax_cruise= 1.6;
+Clmax_cruise= .8;
 Cl_cruise = 1.5;
 
 M =.85;                         %cruise speed
@@ -433,7 +433,7 @@ end
         % Average of Laminar and turbulent
         Cfc_avg        = [(Cf_laminarTo*.05 + Cf_turbulentTo*.95);
                         (Cf_laminarCr*.05 + Cf_turbulentCr*.95);
-                        (Cf_laminarLa*.05 + Cf_turbulentLa*.95)]
+                        (Cf_laminarLa*.05 + Cf_turbulentLa*.95)];
 
         % Component Form Factors
         % Wing, VTail, HTail
@@ -684,8 +684,9 @@ end
                 
             S_loop = S(i);
             T_loop = T(j);
+            S_w_loop = 2* S_loop;
             W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff);
-            Swet = S_Fuselage + 2*S_loop + 2*S_HTail + 2*S_VTail;           %Wetted area of fuselage, wing, HTail, VTail                       
+            Swet = S_Fuselage + S_w_loop + 2*S_HTail + 2*S_VTail;           %Wetted area of fuselage, wing, HTail, VTail                       
             CD0_ = Cf*Swet/(S_loop);
             LOD = (1/2)*sqrt(pi*AR*e(4)/CD0_);
             M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
@@ -709,8 +710,9 @@ end
      
              S_loop = Surface(ii);
              T_loop = round(C(6,ii));
+             S_w_loop = 2* S_loop;
              W0_loop = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff);
-             Swet = S_Fuselage + 2*S_loop + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                       
+             Swet = S_Fuselage + S_w_loop + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail                       
              CD0_ = Cf*Swet/(S_loop);
              LOD = (1/2)*sqrt(pi*AR*e(4)/CD0_);
              M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
