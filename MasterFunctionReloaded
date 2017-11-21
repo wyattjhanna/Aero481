@@ -768,9 +768,7 @@ Va = Vs .* sqrt(n);
 maxVa = Vs * sqrt(2.5);
 
 Vb = maxVa+66;
-Vbn = sqrt(Vb/Vs);
-
-
+Vbn = (Vb/Vs)^2;
 
 Vmo = M * sqrt(1.4*1716*Tcr);
 Vc = Vmo*1.06 ;
@@ -781,11 +779,21 @@ Vsn = 0;
 Vcn = 3.8;
 Vdn = Vbn;
 
-x_ = [Vb Vc Vd];
-y = [Vbn Vcn Vdn];
+a_cutoff = linspace(0,Vbn,100);
+Va = Vs .* sqrt(a_cutoff);
+
+Vdnn = -Vdn + 2;
+Vcnn = -Vcn + 2;
+Vbnn = -Vbn + 2;
+
+x_ = [Vb, Vc, Vd, Vd, Vc, Vb];
+y = [Vbn Vcn Vdn Vdnn Vcnn Vbnn];
+
+a_cutoff2 = linspace(0,Vbnn,100);
 
 hold on
-plot(Va,n)
+plot(Va,a_cutoff)
+plot(Va,a_cutoff2)
 scatter(x_,y)
 line(x_,y)
 
