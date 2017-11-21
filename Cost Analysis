@@ -1,17 +1,20 @@
 %Current year costs in USD
 
+Wfuel = 31805; %lbs
+MTOW = 79885; %lbs
+MEmpty = 50450; %lbs
+
 %Assuming this business jet will be sold in 10 years
-byear = 2017;
+byear = 1995;
 tyear = 2027;
-bCEF = 5.17053 + 0.104981*(byear - 2006);
-tCEF = 5.17053 + 0.104981*(tyear - 2006);
+bCEF = 5.17053 + 0.104981*(byear - 2017);
+tCEF = 5.17053 + 0.104981*(tyear - 2017);
 CEF = tCEF/bCEF;
 
 %Crew cost&block time 
 range = 5200; %[nmi]
 speed = 573*0.85; %[nmi/hr]
 tBlock = range/speed; %[hr]
-MTOW = 74171; %lbs
 Ccrew = (482 + 0.590*(MTOW/1000))*CEF*tBlock;
 %Attendants 
 Cattend = 78*1*CEF*tBlock;
@@ -21,7 +24,6 @@ rhoFuel = 6.7389141;
 %Fuel price [USD/gal]
 Pfuel = 4.31; %Avg price nationwide on Sept 16, 2017 from AirNav
 %Fuel cost
-Wfuel = 32418; %lbs
 Cfuel = 1.02*Wfuel*Pfuel/rhoFuel; 
 %Oil 
 Woil = 0.0125*Wfuel*tBlock/100;
@@ -38,8 +40,7 @@ Cnav = 0.5*CEF*1.852*range/tBlock*sqrt(0.0045359237*MTOW/50);
 %Airframe Maintenance
 
 %Aircraft price [USD]
-MEmpty = 51645; %lbs
-AircraftPrice = 800*MEmpty; %Based on Raymer [Ch. 18, pg 707]
+AircraftPrice = 1128*MEmpty; %Based on G550 cost/mempty
 Caircraft = 10^(3.3191 + 0.8043*log10(MTOW))*CEF;
 Cengine = 10^(2.3044 + 0.8858*log10(MTOW))*CEF;
 Cairframe = Caircraft-Cengine;
@@ -59,4 +60,4 @@ CeMain = nEngines*(CeML + CeMM)*tBlock;
 %No. of Passengers 
 COC = Ccrew + Cattend + Cfuel + Coil + Cairport + Cnav + CafMain + CeMain
 %Range [nmi]
-COC/pax-nmi 
+%COC/pax-nmi 
