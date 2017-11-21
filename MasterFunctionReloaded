@@ -5,15 +5,17 @@ clear all
 close all
 dt = 10;                 %weight convergence number
 Surface_Fineness = 15;    % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 0;         %Turns plotting on and off
+Plot_Graphs = 1;         %Turns plotting on and off
 
+TS_Xmin = 700;
+TS_Xmax = 3000;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
 %AR = 8;                        % Aspect Ratio
-AR = linspace(6,14,30);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = linspace(6,12,3);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -61,6 +63,7 @@ for arinc = 1:length(AR)
         BestOverallAR = AR(arinc);
         BestOverallMTOW = Plane(arinc);
         BestOverallEmpty = Plane(arinc) - Fuel_weight(arinc);
+        BestOverallS = DesignS(arinc);
     end
     
     if length(AR) > 1
@@ -408,10 +411,14 @@ end
         % CD0 Drag = CDparasite + CDmisc + CDLP
         % Component Reynolds number (Transonic)
         rho = 23.77*10^-4;
+        rho2 = 2.7*10^-4;
         mu = 3.737*10^-7;
-        ReTo = rho*V(1)*l/mu; % Takeoff Reynolds
-        ReCr = 44.62*(l/K(k)).^(1.053)*M^1.16; % Cruise Reynolds
-        ReLa = rho*V(2)*l/mu; % Landing Reynolds
+        ReTo = rho.*V(1).*l./mu; % Takeoff Reynolds
+%         ReCr = 44.62*(l/K(k)).^(1.053)*M^1.16; % Cruise Reynolds
+        ReLa = rho.*V(2).*l./mu; % Landing Reynolds
+        
+        ReCr = V_cruise*rho2/mu.*l;
+        
         % Parasite Drag
         % Laminar
         Cf_laminarTo   = 1.328./sqrt(ReTo);
@@ -424,9 +431,9 @@ end
         Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*M.^2).^0.65);
         Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
         % Average of Laminar and turbulent
-        Cfc_avg        = [(Cf_laminarTo + Cf_turbulentTo)./2;
-                        (Cf_laminarCr + Cf_turbulentCr)./2;
-                        (Cf_laminarLa + Cf_turbulentLa)./2];
+        Cfc_avg        = [(Cf_laminarTo*.05 + Cf_turbulentTo*.95);
+                        (Cf_laminarCr*.05 + Cf_turbulentCr*.95);
+                        (Cf_laminarLa*.05 + Cf_turbulentLa*.95)]
 
         % Component Form Factors
         % Wing, VTail, HTail
@@ -529,7 +536,7 @@ end
         
         Tnew = 17745*2; %thrust of our engines
         
-        Surface = 700:Surface_Fineness:1600;
+        Surface = TS_Xmin:Surface_Fineness:TS_Xmax;
         
         Thrust = ones(1,length(Surface));
         %Climbs
@@ -647,7 +654,7 @@ end
         
         if Plot_Graphs == 1;
         
-        axis([700,1600, 5000, 50000])
+        axis([TS_Xmin,TS_Xmax, 5000, 50000])
         
         Slan(1,1001:2001) = linspace(max(Slan),10000000,1001);
         Tlan(1,1001:2001) = max(Tlan);
@@ -670,7 +677,7 @@ end
         Fuelmin = 9999999;
         
         T = linspace(50000,5000,length(FuelWeight));
-        S = linspace(1600,700,length(FuelWeight));
+        S = linspace(TS_Xmax,TS_Xmin,length(FuelWeight));
         Cf =  Cfc_avg(2); 
         for i = 1:length(Surface)
             for j = 1:length(Surface)
@@ -725,7 +732,7 @@ end
          fprintf('Empty Weight %f lbs \n \n', Design_MTOW - Fuelmin);
          fprintf('Thrust %f lbs \n', C(1,Fuelminii));
          fprintf('Design LOD %f lbs \n', DesignLOD);
-         fprintf('Refrence Area %f ft^3 \n \n', DesignS);
+         fprintf('Refrence Area %f ft^2 \n \n', DesignS);
          
         
         Sland_final = 80 * (Design_MTOW - Fuelmin)/ DesignS * (1/((0.0024/p_sl)*Clmax_land)) + Sa;
@@ -735,11 +742,23 @@ end
         if Plot_Graphs == 1        
                 plot(Surface(Fuelminii),C(6,Fuelminii), 'k+', 'LineWidth', 2);
                 text(Surface(Fuelminii)+25, C(6,Fuelminii)-500, 'Design Point');
-                set(gca,'XTick',200:200:1600)
-                set(gca,'XTickLabel',200:200:1600)
+                set(gca,'XTick',200:200:TS_Xmax)
+                set(gca,'XTickLabel',200:200:TS_Xmax)
 
                 text1 = strcat('TSplot',AR_text,'.png');
                 saveas(figure(fig_num),text1) 
         end
     end
+
+%% V-n diagram
+
+p_sealevel = Standard_Atmosphere_IMPERIAL(2);
+V_c = M * sqrt(1.4*1716*T);
+V_EAS = V_c * 1.06;
+
+W = 
+
+n = (p_sealevel * V_EAS^2 * Clmax_cruise) / (2 * W / BestOverallS);
+
+
 end 
