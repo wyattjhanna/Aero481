@@ -757,26 +757,32 @@ end
 
 W = BestOverallMTOW;
 
+
 V_EAS = linspace(0,M * sqrt(1.4*1716*Tcr),100);
 
 n = (p_sealevel .* V_EAS.^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
 
 Vs = sqrt(2*W / (Clmax_cruise * p_cruisevn * BestOverallS)); %Stall speed
 Va = Vs .* sqrt(n);
-Vb = 38;
-Vc = M * sqrt(1.4*1716*Tcr);
-Vmo = Vc * 1.06;
-Vd = Vmo * 1.07;
+
+maxVa = Vs * sqrt(2.5);
+
+Vb = maxVa+66;
+Vbn = sqrt(Vb/Vs);
+
+
+
+Vmo = M * sqrt(1.4*1716*Tcr);
+Vc = Vmo*1.06 ;
+Vd = Vmo * 1.25;
 
 Vsn = 0;
-Van = 2.5;
-Vbn = 0;
-Vcn = 0;
-Vmon = 0;
-Vdn = 2.5;
 
-x_ = [Vb Vd];
-y = [Vbn Vdn];
+Vcn = 3.8;
+Vdn = Vbn;
+
+x_ = [Vb Vc Vd];
+y = [Vbn Vcn Vdn];
 
 hold on
 plot(Va,n)
