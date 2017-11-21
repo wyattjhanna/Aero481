@@ -5,7 +5,7 @@ clear all
 close all
 dt = 10;                 %weight convergence number
 Surface_Fineness = 15;    % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 1;         %Turns plotting on and off
+Plot_Graphs = 0;         %Turns plotting on and off
 
 TS_Xmin = 700;
 TS_Xmax = 3000;
@@ -14,8 +14,8 @@ TS_Xmax = 3000;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-%AR = 8;                        % Aspect Ratio
-AR = linspace(6,12,3);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = 9;                        % Aspect Ratio
+%AR = linspace(6,12,3);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -752,13 +752,36 @@ end
 
 %% V-n diagram
 
-p_sealevel = Standard_Atmosphere_IMPERIAL(2);
-V_c = M * sqrt(1.4*1716*T);
-V_EAS = V_c * 1.06;
+[p_sealevel,~,Tsl] = Standard_Atmosphere_IMPERIAL(2);
+[p_cruisevn,~,Tcr] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
 
-W = 
+W = BestOverallMTOW;
 
-n = (p_sealevel * V_EAS^2 * Clmax_cruise) / (2 * W / BestOverallS);
+V_EAS = linspace(0,M * sqrt(1.4*1716*Tcr),100);
+
+n = (p_sealevel .* V_EAS.^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
+
+Vs = sqrt(2*W / (Clmax_cruise * p_cruisevn * BestOverallS)); %Stall speed
+Va = Vs .* sqrt(n);
+Vb = 38;
+Vc = M * sqrt(1.4*1716*Tcr);
+Vmo = Vc * 1.06;
+Vd = Vmo * 1.07;
+
+Vsn = 0;
+Van = 2.5;
+Vbn = 0;
+Vcn = 0;
+Vmon = 0;
+Vdn = 2.5;
+
+x_ = [Vb Vd];
+y = [Vbn Vdn];
+
+hold on
+plot(Va,n)
+scatter(x_,y)
+line(x_,y)
 
 
 end 
