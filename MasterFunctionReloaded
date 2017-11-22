@@ -14,8 +14,8 @@ TS_Xmax = 2500;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-%AR = 9;                        % Aspect Ratio
-AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = 9;                        % Aspect Ratio
+%AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -754,53 +754,87 @@ end
 
 %% V-n diagram
 
-if Plot_Graphs == 1 
-
+Clmax_cruise = 0.9;
+Clmin_cruise = -0.7;
 [p_sealevel,~,Tsl] = Standard_Atmosphere_IMPERIAL(2);
 [p_cruisevn,~,Tcr] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
 
+beta = sqrt(1-M^2);
+CLa = 2*pi*AR/(2 + sqrt(AR.^2*(beta/0.97)^2*(1+(tan(sweep)^2)/beta^2)+4));
+
+
 W = BestOverallMTOW;
+nmax = [1;2.5];
+nmin = [-1;-2.5];
 
+Vsa = sqrt(2*nmax.*W./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
+Vs = Vsa(1);
+Va = Vsa(2);
 
-V_EAS = linspace(0,M * sqrt(1.4*1716*Tcr),100);
+Vcd = sqrt(2*nmin.*W./(BestOverallS.*Clmin_cruise.*p_sealevel))./1.688;
+Vc = Vcd(1);
+Vd = Vcd(2);
 
-n = (p_sealevel .* V_EAS.^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
+V_EAS = linspace(0,Va,100);
+n = (p_sealevel .* (V_EAS*1.688).^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
+nm = (p_sealevel .* (V_EAS*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
+Vint = 0;
+Veas = [Va,Vd,Vd,Vc,Vint];
+nc = [2.5,2.5,0,-1,-1];
 
-Vs = sqrt(2*W / (Clmax_cruise * p_cruisevn * BestOverallS)); %Stall speed
-Va = Vs .* sqrt(n);
+Vsn = (p_sealevel .* (Vs*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
 
-maxVa = Vs * sqrt(2.5);
-
-Vb = maxVa+66;
-Vbn = (Vb/Vs)^2;
-
-Vmo = M * sqrt(1.4*1716*Tcr);
-Vc = Vmo*1.06 ;
-Vd = Vmo * 1.25;
-
-Vsn = 0;
-
-Vcn = 3.8;
-Vdn = Vbn;
-
-a_cutoff = linspace(0,Vbn,100);
-Va = Vs .* sqrt(a_cutoff);
-
-Vdnn = -Vdn + 2;
-Vcnn = -Vcn + 2;
-Vbnn = -Vbn + 2;
-
-x_ = [Vb, Vc, Vd, Vd, Vc, Vb];
-y = [Vbn Vcn Vdn Vdnn Vcnn Vbnn];
-
-a_cutoff2 = linspace(0,Vbnn,100);
+Vsnline = linspace(Vsn,1,100);
+Vsline = Vs.*ones(size(Vsnline));
 
 hold on
-plot(Va,a_cutoff)
-plot(Va,a_cutoff2)
-scatter(x_,y)
-line(x_,y)
+plot(V_EAS,n)
+plot(V_EAS,nm)
+plot(Veas,nc)
+plot(Vsline,Vsnline)
 
-end
+
+
+
+
+
+
+
+% Vs = sqrt(2*W / (Clmax_cruise * p_cruisevn * BestOverallS)); %Stall speed
+% Va = Vs .* sqrt(n);
+% 
+% maxVa = Vs * sqrt(2.5);
+% 
+% Vb = maxVa+66;
+% Vbn = (Vb/Vs)^2;
+% 
+% Vmo = M * sqrt(1.4*1716*Tcr);
+% Vc = Vmo*1.06 ;
+% Vd = Vmo * 1.25;
+% 
+% Vsn = 0;
+% 
+% Vcn = 3.8;
+% Vdn = Vbn;
+% 
+% a_cutoff = linspace(0,Vbn,100);
+% Va = Vs .* sqrt(a_cutoff);
+% 
+% Vdnn = -Vdn + 2;
+% Vcnn = -Vcn + 2;
+% Vbnn = -Vbn + 2;
+% 
+% x_ = [Vb, Vc, Vd, Vd, Vc, Vb];
+% y = [Vbn Vcn Vdn Vdnn Vcnn Vbnn];
+% 
+% a_cutoff2 = linspace(0,Vbnn,100);
+% 
+% hold on
+% plot(Va,a_cutoff)
+% plot(Va,a_cutoff2)
+% scatter(x_,y)
+% line(x_,y)
+% 
+% end
 
 end 
