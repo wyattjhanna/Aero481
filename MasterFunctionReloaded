@@ -8,14 +8,14 @@ Surface_Fineness = 15;    % Adjusts linspace of Surface, lower numbers compute s
 Plot_Graphs = 0;         %Turns plotting on and off
 
 TS_Xmin = 700;
-TS_Xmax = 1800;
+TS_Xmax = 2500;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
 
-AR = 9;                        % Aspect Ratio
-%AR = linspace(6,12,3);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 9;                        % Aspect Ratio
+AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -31,7 +31,7 @@ sweep       = 27;
 
 Clmax_to = 1.8;
 Clmax_land = 2.1;
-Clmax_cruise= .8;
+Clmax_cruise= 1.6;
 Cl_cruise = 1.5;
 
 M =.85;                         %cruise speed
@@ -754,6 +754,8 @@ end
 
 %% V-n diagram
 
+if Plot_Graphs == 1 
+
 [p_sealevel,~,Tsl] = Standard_Atmosphere_IMPERIAL(2);
 [p_cruisevn,~,Tcr] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
 
@@ -799,5 +801,6 @@ plot(Va,a_cutoff2)
 scatter(x_,y)
 line(x_,y)
 
+end
 
 end 
