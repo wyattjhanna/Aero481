@@ -15,8 +15,8 @@ TS_Xmax = 2500;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e c_root
 
-AR = 9;                        % Aspect Ratio
-%AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = 12;                        % Aspect Ratio
+%AR = linspace(6,12,12);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Payload = 2600;
 
@@ -107,7 +107,7 @@ end
     W0_guess = 100000;
     converge = 99999999;
     
-    Swet = S_Fuselage + 2*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
+    Swet = S_Fuselage + 1*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
 
     Mach_sea = 0.2;    
     q = .5*1.4*0.000364*Mach_sea^2;
@@ -136,7 +136,7 @@ end
         Fuel = M_fff*W0_guess;
 
         LGear   = 0.043*W0_guess;
-        AllElse = 1.0*0.17*W0_guess;            %NOTE .3 CORRECTION FACTOR
+        AllElse = 1*0.17*W0_guess;            %NOTE .3 CORRECTION FACTOR
         
         %Raymber GA
         Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
@@ -237,8 +237,8 @@ end
         ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
         
         %e depends on our different configurations during flight
-        %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
-        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
+        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        %eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
         fprintf('e clean = %f \n\n', eclean);
         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         %      1              2            3       4        5            6       <- Climb #
@@ -268,7 +268,7 @@ end
         % CLimb
         Climb = ks.^2 ./ (CL).*Cdo+CL./(ks.*Const)+G;
         Climb = Climb .* ones(1001,1);
-        Cor = (1/.8)*(1/.82)*(2);
+        Cor = (1/.8)*(1/.94)*(2);
         TWConvert = [M_ff(1)*M_ff(2)                            %1
             M_ff(1)*M_ff(2)                            %2
             M_ff(1)*M_ff(2)                            %3
@@ -284,6 +284,7 @@ end
         % Cruise
         q = (1/2)*p_cruise*V_cruise^2;
         Cruise = (q.*Cdo(4)./WS) + WS.*(1./(q.*pi.*AR.*e(4)));
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         ThrustScale = .53*(p_sl ./ p_cruise)^.6;   % Thrust Scaling Factor
         Cruise = Cruise .* ThrustScale .*(M_ff(1)* M_ff(2)* M_ff(3)* M_ff(4));
         
@@ -351,8 +352,8 @@ end
         
         
         Takeoff(index);
-        plot(WS(index), Climb(1,6), 'k+', 'LineWidth', 3);
-        text(WS(index)+4, Climb(1,6)+.005, 'Design Point', 'fontsize', 16);
+        plot(Landing(1,1), Climb(1,6), 'k+', 'LineWidth', 3);
+        text(Landing(1,1)+4, Climb(1,6)+.005, 'Design Point', 'fontsize', 16);
         
         title(['AR = ',num2str(AR)])
         
@@ -369,7 +370,7 @@ end
 %% ------------------------------- TS -------------------------------
         Climb = Climb';
         TWWS = [Takeoff;Cruise];
-        ws = WS(index);
+        ws = Landing(1,1);
         ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
         
         %CD for climb 1,2,3,4,5,6, cruise
@@ -383,7 +384,7 @@ end
         for n = 1:7
             for i = 1:length(Surface)
                 Swing = Surface(i);
-                LOD = Drag_Polars(Swing);
+                LOD = Drag_Polars(Swing,AR);
                                 
                 converge = 0;
                 Thrust(i) = Tnew;
@@ -408,7 +409,7 @@ end
         for i = 1:length(Surface)
             Tnew = 17745*2;
             Swing = Surface(i);
-            LOD = Drag_Polars(Swing);
+            LOD = Drag_Polars(Swing,AR);
                 
             converge = 0;
             Cr(i) = Tnew;
@@ -434,18 +435,18 @@ end
         % Takeoff
         To = ones(1,length(Surface));
         for i = 1:length(Surface)
-            Tnew = 17745*2;
+            Tnew = 17745;
             Swing = Surface(i);
-            LOD = Drag_Polars(Swing);
+            LOD = Drag_Polars(Swing,AR);
   
             converge = 0;
             To(i) = Tnew;
             while converge == 0
                 [W0, W0S0] = WeightEstimate(Swing,To(i),AR, taper, sweep, M_ff, LOD(2));
-                xold = 1000;
+                xold = 10000;
                 for j = 1:length(WS)
                     x = abs(WS(j)-W0S0);
-                    if xold > x
+                    if xold < x
                         TWnew = TWWS(1,j);
                     end
                 end
@@ -469,9 +470,10 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                LOD = Drag_Polars(Sur(i));
+                LOD = Drag_Polars(Sur(i),AR);
                 [W0, W0S0] = WeightEstimate(Sur(i),T,AR, taper, sweep, M_ff,LOD(6));
-                Snew = W0./ws;  
+                Snew = W0./ws; 
+                ws
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
                 else
@@ -517,13 +519,13 @@ end
         
         Fuelmin = 9999999;
         
-        T = linspace(50000,5000,length(FuelWeight));
-        S = linspace(TS_Xmax,TS_Xmin,length(FuelWeight));
+        T = linspace(5000,50000,length(FuelWeight));
+        S = linspace(TS_Xmin,TS_Xmax,length(FuelWeight));
         for i = 1:length(Surface)
             for j = 1:length(Surface)
                 
             S_loop = S(i);
-            LOD = Drag_Polars(S_loop);
+            LOD = Drag_Polars(S_loop,AR);
             T_loop = T(j);
             [W0_loop, WS_loop] = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff,LOD(3));
             %Wetted area of fuselage, wing, HTail, VTail                       
@@ -537,6 +539,7 @@ end
         v = [22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,45,50,60,70,80,90,100]*1000;
         
         if Plot_Graphs == 1
+           % S = linspace(S(end), 15, length(FuelWeight))
             contour(S,T,FuelWeight',v,'ShowText','on')
         end
         
@@ -547,7 +550,7 @@ end
          for ii = 1:length(Surface)
      
              S_loop = Surface(ii);
-             LOD = Drag_Polars(S_loop);
+             LOD = Drag_Polars(S_loop,AR);
              T_loop = round(C(6,ii));
              [W0_loop, WS_loop] = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff,LOD(3));                    
              M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD(3)))))^-1;
@@ -587,12 +590,12 @@ end
         end
     end
 %% LOD Function
-    function [LoD] = Drag_Polars(Sref) 
+    function [LoD] = Drag_Polars(Sref,AR) 
         fig_num = 2;
         CGx = 61.2;
         CGz = 7.02;
         
-        c_root = 2*Sref/(sqrt(Sref*AR)*(1+taper));
+        c_root = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
         
         % Raymr for a business jet         
         % Variables
@@ -716,13 +719,17 @@ end
         CLmin = CLmins.*ones(size(CL));  
         
         CDtrim  = 0.0295.*(CL-CLmin).^2 + 0.0004.*(CL-CLmin) + 0.0004;
+        
+        MDD = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (CL-CLmin) ./ (10*(cos(sweep))^3 ));
+        Mcrit = MDD - (.1/80)^(1/3);
+        CDwave = 20*(M-Mcrit).^4;
                 
-        CD = [CD0(1) + CDtrim(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi*AR*e(1));
-        CD0(2) + CDtrim(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi*AR*e(2));
-        CD0(3) + CDtrim(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi*AR*e(3));
-        CD0(4) + CDtrim(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi*AR*e(5));
-        CD0(5) + CDtrim(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi*AR*e(6))];
-    
+        CD = [CD0(1) + CDtrim(1,:) + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
+              CD0(2) + CDtrim(2,:) + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+              CD0(3) + CDtrim(3,:) + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+              CD0(4) + CDtrim(4,:) + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+              CD0(5) + CDtrim(5,:) + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+   
     %max LOD for each climb.. 1,2,3,4,5,6,cruise
         LoD(1) = max(CL(1,:)./CD(1,:));
         LoD(2) = max(CL(2,:)./CD(2,:));
@@ -779,13 +786,6 @@ end
 % plot(V_EAS,nm)
 % plot(Veas,nc)
 % plot(Vsline,Vsnline)
-
-
-
-
-
-
-
 
 % Vs = sqrt(2*W / (Clmax_cruise * p_cruisevn * BestOverallS)); %Stall speed
 % Va = Vs .* sqrt(n);
