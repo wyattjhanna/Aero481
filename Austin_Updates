@@ -136,7 +136,7 @@ end
         Fuel = M_fff*W0_guess;
 
         LGear   = 0.043*W0_guess;
-        AllElse = 0.17*W0_guess;        
+        AllElse = 1.0*0.17*W0_guess;            %NOTE .3 CORRECTION FACTOR
         
         %Raymber GA
         Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
@@ -471,7 +471,7 @@ end
             while converge == 0
                 LOD = Drag_Polars(Sur(i));
                 [W0, W0S0] = WeightEstimate(Sur(i),T,AR, taper, sweep, M_ff,LOD(6));
-                Snew = W0./W0S0;  
+                Snew = W0./ws;  
                 if abs(Sur(i)-Snew) < dt
                     converge = 1;
                 else
@@ -586,7 +586,7 @@ end
                 saveas(figure(fig_num),text1) 
         end
     end
-
+%% LOD Function
     function [LoD] = Drag_Polars(Sref) 
         fig_num = 2;
         CGx = 61.2;
@@ -602,7 +602,7 @@ end
         % Chord wise location of max airfoil thickness
         xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
         % Wetted Areas
-        St = 184.21;
+        St = 184.21; % Nacelle Wetted Area
         % Changing with Sref input
         Swetc = [2*Sref, S_VTail*2, S_HTail*2, S_Fuselage-2*St, 2*St];
         % Component Sweep
@@ -728,6 +728,8 @@ end
         LoD(6) = max(CL(5,:)./CD(5,:));
         LoD(7) = max(CL(3,:)./CD(3,:));
         
+        LoD = LoD .* 2; % NOTE CORRECTION FACTOR
+        
         plot_drag = sprintf('Max L/D = %f', LoD);
     end
 
@@ -737,44 +739,44 @@ end
 
 %% V-n diagram
 
-Clmax_cruise = 0.9;
-Clmin_cruise = -0.7;
-[p_sealevel,~,Tsl] = Standard_Atmosphere_IMPERIAL(2);
-[p_cruisevn,~,Tcr] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
-
-beta = sqrt(1-M^2);
-CLa = 2*pi*AR/(2 + sqrt(AR.^2*(beta/0.97)^2*(1+(tan(sweep)^2)/beta^2)+4));
-
-
-W = BestOverallMTOW;
-nmax = [1;2.5];
-nmin = [-1;-2.5];
-
-Vsa = sqrt(2*nmax.*W./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
-Vs = Vsa(1);
-Va = Vsa(2);
-
-Vcd = sqrt(2*nmin.*W./(BestOverallS.*Clmin_cruise.*p_sealevel))./1.688;
-Vc = Vcd(1);
-Vd = Vcd(2);
-
-V_EAS = linspace(0,Va,100);
-n = (p_sealevel .* (V_EAS*1.688).^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
-nm = (p_sealevel .* (V_EAS*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
-Vint = 0;
-Veas = [Va,Vd,Vd,Vc,Vint];
-nc = [2.5,2.5,0,-1,-1];
-
-Vsn = (p_sealevel .* (Vs*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
-
-Vsnline = linspace(Vsn,1,100);
-Vsline = Vs.*ones(size(Vsnline));
-
-hold on
-plot(V_EAS,n)
-plot(V_EAS,nm)
-plot(Veas,nc)
-plot(Vsline,Vsnline)
+% Clmax_cruise = 0.9;
+% Clmin_cruise = -0.7;
+% [p_sealevel,~,Tsl] = Standard_Atmosphere_IMPERIAL(2);
+% [p_cruisevn,~,Tcr] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
+% 
+% beta = sqrt(1-M^2);
+% CLa = 2*pi*AR/(2 + sqrt(AR.^2*(beta/0.97)^2*(1+(tan(sweep)^2)/beta^2)+4));
+% 
+% 
+% W = BestOverallMTOW;
+% nmax = [1;2.5];
+% nmin = [-1;-2.5];
+% 
+% Vsa = sqrt(2*nmax.*W./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
+% Vs = Vsa(1);
+% Va = Vsa(2);
+% 
+% Vcd = sqrt(2*nmin.*W./(BestOverallS.*Clmin_cruise.*p_sealevel))./1.688;
+% Vc = Vcd(1);
+% Vd = Vcd(2);
+% 
+% V_EAS = linspace(0,Va,100);
+% n = (p_sealevel .* (V_EAS*1.688).^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
+% nm = (p_sealevel .* (V_EAS*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
+% Vint = 0;
+% Veas = [Va,Vd,Vd,Vc,Vint];
+% nc = [2.5,2.5,0,-1,-1];
+% 
+% Vsn = (p_sealevel .* (Vs*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
+% 
+% Vsnline = linspace(Vsn,1,100);
+% Vsline = Vs.*ones(size(Vsnline));
+% 
+% hold on
+% plot(V_EAS,n)
+% plot(V_EAS,nm)
+% plot(Veas,nc)
+% plot(Vsline,Vsnline)
 
 
 
