@@ -16,7 +16,7 @@ TS_Xmax = 1800;
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl 
 
 AR = 8.5;                        % Aspect Ratio
-%AR = linspace(6,12,8);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;
 
@@ -811,11 +811,11 @@ end
         Mcrit = MDD - (.1/80)^(1/3);
         CDwave = 20*(M-Mcrit).^4;
                 
-        CD = [CD0(1) + CDtrim(1,:) + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
-              CD0(2) + CDtrim(2,:) + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
-              CD0(3) + CDtrim(3,:) + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
-              CD0(4) + CDtrim(4,:) + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
-              CD0(5) + CDtrim(5,:) + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+        CD = [CD0(1)  + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
+              CD0(2)   + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+              CD0(3)  + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+              CD0(4)  + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+              CD0(5)  + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
    
     %max LOD for each climb.. 1,2,3,4,5,6,cruise
     CD0(1) = CD0(1);
