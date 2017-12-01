@@ -13,7 +13,7 @@ TS_Xmax = 2500;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
-global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e
+global M Cruise_alt Sland taper sweep Range V_cruise S_HTail S_VTail S_Fuselage t_c_root e c_root
 
 AR = 9;                        % Aspect Ratio
 %AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
@@ -105,13 +105,13 @@ end
     T = T/2;    
         
     W0_guess = 100000;
-    WS = 1000;
     converge = 99999999;
     
     Swet = S_Fuselage + 2*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
 
     Mach_sea = 0.2;    
     q = .5*1.4*0.000364*Mach_sea^2;
+    
     c_root = 2*S/(sqrt(S*AR)*(1+taper));   
     
     HTail   = 5.5*S_HTail;  % Horizontal Tail Sref
@@ -591,6 +591,9 @@ end
         fig_num = 2;
         CGx = 61.2;
         CGz = 7.02;
+        
+        c_root = 2*Sref/(sqrt(Sref*AR)*(1+taper));
+        
         % Raymr for a business jet         
         % Variables
         % Component order
@@ -598,7 +601,7 @@ end
         % length
         l = [10.17, 12.649, 9.523, 91.914, 18.333];   % Updated 11/15/2017
         % Thickness
-        t = [2, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
+        t = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
         % Chord wise location of max airfoil thickness
         xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
         % Wetted Areas
@@ -706,13 +709,14 @@ end
             linspace(-Clmax_land, Clmax_land, 100);
             linspace(-Clmax_land, Clmax_land, 100)];
         
-        % CDtrim          
-        CDtrim  = 0.0295.*CL.^2 + 0.0004.*CL + 0.0004;
+        % CDtrim  
         
         CLmindrag = 0.5;
         CLmins = CLmindrag*[1;1;1;1;1];
-        CLmin = CLmins.*ones(size(CL));
+        CLmin = CLmins.*ones(size(CL));  
         
+        CDtrim  = 0.0295.*(CL-CLmin).^2 + 0.0004.*(CL-CLmin) + 0.0004;
+                
         CD = [CD0(1) + CDtrim(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi*AR*e(1));
         CD0(2) + CDtrim(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi*AR*e(2));
         CD0(3) + CDtrim(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi*AR*e(3));
@@ -727,8 +731,6 @@ end
         LoD(5) = max(CL(4,:)./CD(4,:));
         LoD(6) = max(CL(5,:)./CD(5,:));
         LoD(7) = max(CL(3,:)./CD(3,:));
-        
-        LoD = LoD .* 2; % NOTE CORRECTION FACTOR
         
         plot_drag = sprintf('Max L/D = %f', LoD);
     end
