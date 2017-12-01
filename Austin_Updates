@@ -5,11 +5,11 @@ clc
 clear all
 close all
 dt = 10;                 %weight convergence number
-Surface_Fineness = 15;    % Adjusts linspace of Surface, lower numbers compute slower.
+Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute slower.
 Plot_Graphs = 1;         %Turns plotting on and off
 
 TS_Xmin = 700;
-TS_Xmax = 2500;
+TS_Xmax = 2100;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
@@ -107,7 +107,7 @@ end
     W0_guess = 100000;
     converge = 99999999;
     
-    Swet = S_Fuselage + 1*S + 2*S_HTail + 2*S_VTail;  %Wetted area of fuselage, wing, HTail, VTail
+    Swet = S_Fuselage + 2*S + 2*S_HTail*(S/S_HTail) + 2*S_VTail*(S/S_VTail);  %Wetted area of fuselage, wing, HTail, VTail
 
     Mach_sea = 0.2;    
     q = .5*1.4*0.000364*Mach_sea^2;
@@ -136,10 +136,10 @@ end
         Fuel = M_fff*W0_guess;
 
         LGear   = 0.043*W0_guess;
-        AllElse = 1*0.17*W0_guess;            %NOTE .3 CORRECTION FACTOR
+        AllElse = 0.1*W0_guess;          
         
         %Raymber GA
-        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+        %Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
         Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
         * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
@@ -147,10 +147,12 @@ end
         %Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
         %        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
-         Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
-         / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
+         %Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+         %/ ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
      
-        Wing_avg = (Wing(1,:)+Wing(2,:)+Wing(3,:))/3;
+        Wing_avg = Wing(2,:);
+        
+        %Wing_avg = 10*S;
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -430,6 +432,8 @@ end
             end
         end
         
+        fprintf('TS CRUISE     - COMPLETE \n');
+        
         % Takeoff
         To = ones(1,length(Surface));
         for i = 1:length(Surface)
@@ -462,6 +466,8 @@ end
         
         Thrust = linspace(100,70000,1001);
         Sur = ones(1,length(Thrust));
+        
+        fprintf('TS TAKEOFF    - COMPLETE \n');
         
         % Landing
         Snew = MTOW / ws_1;
@@ -503,7 +509,7 @@ end
         Tlan(1,1001:2001) = max(Tlan);
         
         area(Slan, Tlan, .5, 'EdgeColor', 'none', 'FaceColor', [.8 .9 1]);
-        area(Surface, C(6,:), .5, 'EdgeColor', 'none', 'FaceColor', [1,1,1]);
+        area(Surface, max(C(3,:),To), .5, 'EdgeColor', 'none', 'FaceColor', [1,1,1]);
         legend('AutoUpdate', 'off')
         plot(Surface,C,Surface,Cr,'r',Slan,Tlan,'k',Surface,To,'m','LineWidth',1)
         legend('Feasible', 'Not Feasible','Climb 1', 'Climb 2', 'Climb 3', 'Climb 4', 'Climb 5', 'Climb 6', 'Ceiling', 'Cruise', 'Landing', 'Takeoff', 'AutoUpdate', 'off')
@@ -580,8 +586,8 @@ end
         fprintf('Landing Length: %f ft \n \n', Sland_final);
         
         if Plot_Graphs == 1        
-                plot(Surface(Fuelminii),C(6,Fuelminii), 'k+', 'LineWidth', 2);
-                text(Surface(Fuelminii)+25, C(6,Fuelminii)-500, 'Design Point');
+                plot(Surface(Fuelminii),C(3,Fuelminii), 'k+', 'LineWidth', 2);
+                text(Surface(Fuelminii)+25, C(3,Fuelminii)-500, 'Design Point');
                 set(gca,'XTick',200:200:TS_Xmax)
                 set(gca,'XTickLabel',200:200:TS_Xmax)
 
@@ -686,7 +692,8 @@ end
         % Wetted Areas
         St = 184.21; % Nacelle Wetted Area
         % Changing with Sref input
-        Swetc = [2*Sref, S_VTail*2, S_HTail*2, S_Fuselage-2*St, 2*St];
+        
+        Swetc = [2*Sref, 2*S_VTail*(Sref/S_VTail), 2*S_HTail*(Sref/S_HTail), S_Fuselage-2*St, 2*St];
         % Component Sweep
         Lm = [sweep, 52.80, 40.54];
         % Takeoff, Landing Velocity (ft/s)
@@ -790,7 +797,7 @@ end
         
         % CDtrim  
         
-        CLmindrag = 0.5;
+        CLmindrag = 0.5;                                    % Why is this hard coded?
         CLmins = CLmindrag*[1;1;1;1;1];
         CLmin = CLmins.*ones(size(CL));  
         
@@ -823,7 +830,36 @@ end
         LoD(6) = max(CL(5,:)./CD(5,:));
         LoD(7) = max(CL(3,:)./CD(3,:));
         
+        
         plot_drag = sprintf('Max L/D = %f', LoD);
     end
+
+function [SHT, SVT] = stabilizers(Fl,SW, cw, bw)
+%in between jet transport and general aviation twin engine
+cht = .9;
+cvt = 0.08;
+%45% for Vertical tail
+%48% for Horizontal tail
+%looking at convential business jets, it looks similar to this
+LHT = 0.48*Fl;
+LVT = 0.45*Fl;
+SVT = bw*SW*cvt/LVT;
+SHT = cw*SW*cht/LHT;
+%supercritical airfoil n0011sc-il
+%Vertical taper ratio
+VTPR =.4 ;
+%Horizontal taper ratio
+HTPR = .7;
+%Horizontal aspect ratio
+HAR = 4;
+%Vertical aspect ratio
+VAR = .9;
+h_span = sqrt(HAR*SHT);
+v_span = sqrt(VAR*VHT)/4;
+H_c = SHT / Hspan;
+V_c = VHT / Vspan;
+%outputs
+%
+end
 
 end 
