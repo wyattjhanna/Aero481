@@ -523,6 +523,7 @@ end
         title(['AR = ',num2str(AR)])
         scatter(1017,32000)
         scatter(1140,30753)
+        text(1140+4, 30753+500, 'G550', 'fontsize', 16);
 
         end
         
@@ -591,7 +592,7 @@ end
         
         if Plot_Graphs == 1        
                 plot(Surface(Fuelminii),C(3,Fuelminii), 'k+', 'LineWidth', 2);
-                text(Surface(Fuelminii)+25, C(3,Fuelminii)-500, 'Design Point');
+                text(Surface(Fuelminii)+5, C(3,Fuelminii)-500, 'Design Point', 'fontsize', 16);
                 set(gca,'XTick',200:200:TS_Xmax)
                 set(gca,'XTickLabel',200:200:TS_Xmax)
 
