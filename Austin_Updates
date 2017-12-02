@@ -6,17 +6,17 @@ clear all
 close all
 dt = 10;                 %weight convergence number
 Surface_Fineness = 20;    % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 1;         %Turns plotting on and off
+Plot_Graphs = 0;         %Turns plotting on and off
 
 TS_Xmin = 700;
-TS_Xmax = 1800;
+TS_Xmax = 1600;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl 
 
-AR = 8.5;                        % Aspect Ratio
-%AR = linspace(6,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 8.5;                        % Aspect Ratio
+AR = linspace(5,12,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;
 
@@ -356,7 +356,7 @@ end
         
         
         Takeoff(index);
-        plot(Landing(1,1), Climb(1,6), 'k+', 'LineWidth', 3);
+        plot(min(Landing(1,1),WS(index)), Climb(1,6), 'k+', 'LineWidth', 3);
         text(Landing(1,1)+4, Climb(1,6)+.005, 'Design Point', 'fontsize', 16);
         
         title(['AR = ',num2str(AR)])
@@ -547,7 +547,7 @@ end
         v = [17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]*1000;
         
         if Plot_Graphs == 1
-           % S = linspace(S(end), 15, length(FuelWeight))
+
             contour(S,T,FuelWeight',v,'ShowText','on')
         end
         
@@ -559,7 +559,7 @@ end
      
              S_loop = Surface(ii);
              [LOD, CD0] = Drag_Polars(S_loop,AR);
-             T_loop = round(C(6,ii));
+             T_loop = round(C(3,ii));
              [W0_loop, WS_loop] = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff,LOD(3));                    
              M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD(3)))))^-1;
              M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
@@ -811,11 +811,11 @@ end
         Mcrit = MDD - (.1/80)^(1/3);
         CDwave = 20*(M-Mcrit).^4;
                 
-        CD = [CD0(1)  + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
-              CD0(2)   + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
-              CD0(3)  + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
-              CD0(4)  + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
-              CD0(5)  + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+        CD = [CD0(1) + CDtrim(1,:) + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
+              CD0(2) + CDtrim(2,:) + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+              CD0(3) + CDtrim(3,:) + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+              CD0(4) + CDtrim(4,:) + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+              CD0(5) + CDtrim(5,:) + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
    
     %max LOD for each climb.. 1,2,3,4,5,6,cruise
     CD0(1) = CD0(1);
