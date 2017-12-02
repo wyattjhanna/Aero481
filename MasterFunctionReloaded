@@ -15,7 +15,7 @@ TS_Xmax = 1300;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T rho rho2
 
-AR         = 9.29;             % Aspect Ratio
+AR         = 8.875;             % Aspect Ratio
 %AR          = linspace(7,12,25);    % we can loop through with different aspect ratios. 3 graphs per loop
 
 Fl          = 91.914;       % Fuselage Length
