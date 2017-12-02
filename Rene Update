@@ -370,8 +370,8 @@ end
         % For each line in the TWWS plot they are converted to the TS plot
         % by iterating a Reference area for the wing to generate the
         % corresponding thrust necessary. The functions called for each
-        % line are Constraints(line 611), Drag_Polars(line 681), and
-        % WeightEstimate (line 373) (See functions for their descriptions).
+        % line are Constraints(line 608), Drag_Polars(line 680), and
+        % WeightEstimate (line 107) (See functions for their descriptions).
         % The lines and L/D are generated for the given S. WeightEstimate
         % uses generates a takeoff weight which is used with the TW WS
         % relation to predict a better thrust (T) and with the new thrust a
@@ -606,7 +606,7 @@ end
 
 %% Constraint Line Function
     function [c,index,Climb,TWWS,ws,ClimbCoe] = Constraints(Sref,AR,p)
-        % This function is called by TS (line ) and generates the
+        % This function is called by TS (line 214) and generates the
         % constraint meeting FAR 25 requirements with the given Sref. Each
         
         [L0D, CD0] = Drag_Polars(Sref,AR);
