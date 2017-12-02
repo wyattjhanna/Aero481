@@ -6,7 +6,7 @@ clc
 close all
 dt = 10;                    %weight convergence number
 Surface_Fineness = 10;      % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 1;            %Turns plotting on and off
+Plot_Graphs = 0;            %Turns plotting on and off
 
 TS_Xmin = 700;
 TS_Xmax = 1300;
@@ -15,8 +15,8 @@ TS_Xmax = 1300;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T rho rho2
 
-AR         = 8.875;             % Aspect Ratio
-%AR          = linspace(7,12,25);    % we can loop through with different aspect ratios. 3 graphs per loop
+%AR         = 8.875;             % Aspect Ratio
+AR          = linspace(7,12,25);    % we can loop through with different aspect ratios. 3 graphs per loop
 
 Fl          = 91.914;       % Fuselage Length
 
@@ -144,13 +144,13 @@ end
         % Wing weight estimation equations to average for more accurate
         % wing weight estimate
         %Raymber GA
-        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cosd(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cosd(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
         Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
         * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         %Nicolai General Dynamics transport
         Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
-         / ((100*t_c_root)^0.76*(cosd(sweep/2))^1.54);
+         / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
      
         Wing_avg  = (Wing(1,:)+Wing(2,:)+Wing(3,:))/3;
         % Component Summation
@@ -839,4 +839,5 @@ LVT = 0.45*Fl;
 SVT = bw*SW*cvt/LVT;
 SHT = cw*SW*cht/LHT;
 end
+
 end 
