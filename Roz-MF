@@ -581,7 +581,7 @@ end
          fprintf('Design MTOW %f lbs \n', Design_MTOW);
          fprintf('Fuel Weight %f lbs \n', Fuelmin);
          fprintf('Empty Weight %f lbs \n \n', Design_MTOW - Fuelmin);
-         fprintf('Thrust %f lbs \n', C(1,Fuelminii));
+         fprintf('Thrust %f lbs \n', C(3,Fuelminii));
          fprintf('Design LOD %f lbs \n', DesignLOD);
          fprintf('Refrence Area %f ft^2 \n \n', DesignS);
          
