@@ -13,10 +13,10 @@ TS_Xmax = 1300;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
-global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T rho rho2
+global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T rho rho2 b
 
-%AR         = 8.875;             % Aspect Ratio
-AR          = linspace(7,12,25);    % we can loop through with different aspect ratios. 3 graphs per loop
+AR         = 8.875;             % Aspect Ratio
+%AR          = linspace(7,12,25);    % we can loop through with different aspect ratios. 3 graphs per loop
 
 Fl          = 91.914;       % Fuselage Length
 
@@ -41,7 +41,7 @@ Range       = 5200;         % [nmi]
 
 Cf          = 0.003;        % Based on Raymer
 sfc         = 0.6;          % specific fuel consumption
-
+b           = 1;
 %% ----------------------- Initial Weight Guess -----------------------
 
 MTOW_Guess = 70000;         % Takeoff Weight (lbs)
@@ -67,7 +67,7 @@ for arinc = 1:length(AR)
         BestOverallAR = AR(arinc);
         BestOverallMTOW = Plane(arinc);
         BestOverallEmpty = Plane(arinc) - Fuel_weight(arinc);
-        %BestOverallS = DesignS(arinc);
+        BestOverallS = DesignS(arinc);
     end
     
     if length(AR) > 1
@@ -94,7 +94,7 @@ title('Refrence Area')
 figure(4)
 plot(AR,Fuel_weight)
 title('FUEL WEIGHT')
-
+b = b + 4
 fprintf('--------------- CONCLUSIONS ---------------\n \n');
 
 fprintf('Best Aspect Ratio: %f \n', BestOverallAR);
@@ -292,6 +292,7 @@ end
         
         % Plotting the TW - WS for the selected AR
         figure(fig_num)
+        b = b + 1;
         set(gcf, 'Position', get(0, 'Screensize'));
         hold on
         plot(WS, Takeoff, 'b')
@@ -509,6 +510,7 @@ end
         Slan = Sur;
         
         figure(fig_num)
+        b = b + 1;
         set(gcf, 'Position', get(0, 'Screensize'));
         hold on
         
@@ -839,5 +841,114 @@ LVT = 0.45*Fl;
 SVT = bw*SW*cvt/LVT;
 SHT = cw*SW*cht/LHT;
 end
+%% V-n diagram
 
+
+Clmin_cruise = -0.7;
+[p_sealevel,~,~] = Standard_Atmosphere_IMPERIAL(2);
+[p_cruisevn,~,~] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
+
+Vtas    = V_cruise/1.688;
+sig     = p_cruisevn/p_sealevel;
+
+
+
+W       = BestOverallMTOW;
+Wem     = BestOverallEmpty;
+
+nmax    = [1;2.5];
+nmin    = [-1;-2.5];
+
+Vsa     = sqrt(2*nmax.*W./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
+Vs      = Vsa(1);
+Va      = Vsa(2);
+
+Vintd   = sqrt(2*nmin.*W./(BestOverallS.*Clmin_cruise.*p_sealevel))./1.688;
+Vint    = Vintd(1);
+Vd      = Vintd(2);
+Vc      = Vd/(1.06*1.07);
+V_EAS   = linspace(0,Va,100);
+V_EASm  = linspace(0,Vint,100);
+n       = (p_sealevel .* (V_EAS*1.688).^2 .* Clmax_cruise) ./ (2 .* W ./ BestOverallS);
+nm      = (p_sealevel .* (V_EASm*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
+Veas    = [Va,Vd,Vd,Vc,Vint];
+nc      = [2.5,2.5,0,-1,-1];
+
+Vsn     = (p_sealevel .* (Vs*1.688).^2 .* Clmin_cruise) ./ (2 .* W ./ BestOverallS);
+Vsnline = linspace(Vsn,1,100);
+Vsline  = Vs.*ones(size(Vsnline));
+
+Vsaem   = sqrt(2*nmax.*Wem./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
+Vsem    = Vsaem(1);
+Vaem    = Vsaem(2);
+Vintdem = sqrt(2*nmin.*Wem./(BestOverallS.*Clmin_cruise.*p_sealevel))./1.688;
+Vintem  = Vintdem(1);
+Vdem    = Vintdem(2);
+V_EASem = linspace(0,Vaem,100);
+V_EASmem = linspace(0,Vintem,100);
+nem     = (p_sealevel .* (V_EASem*1.688).^2 .* Clmax_cruise) ./ (2 .* Wem ./ BestOverallS);
+nmem    = (p_sealevel .* (V_EASmem*1.688).^2 .* Clmin_cruise) ./ (2 .* Wem ./ BestOverallS);
+Vcem    = Vdem/(1.06*1.07);
+Veasem  = [Vaem,Vdem,Vdem,Vcem,Vintem];
+Vsnem   = (p_sealevel .* (Vsem*1.688).^2 .* Clmin_cruise) ./ (2 .* Wem ./ BestOverallS);
+Vsnlineem = linspace(Vsnem,1,100);
+Vslineem = Vsem.*ones(size(Vsnlineem));
+% Gust lines
+g       = 32.174;
+beta    = sqrt(1-M^2);
+CLa     = 2*pi*AR/(2 + sqrt(AR.^2*(beta/0.97)^2*(1+(tan(sweep)^2)/beta^2)+4));
+mug     = 2.*(W/BestOverallS)./(p_sealevel.*l(1).*CLa.*g);
+Kg      = 0.88.*mug/(5.3+mug);
+Ue      = [66; 50; 25];
+A       = p_sealevel.*Clmax_cruise/(2*W./BestOverallS);
+B       = Kg.*CLa.*Ue(1)/(489.*W./BestOverallS);
+Vb      = (B-sqrt(B^2-4*A))/(2*A);
+Vbcd    = [Vb;Vc;Vd];
+ngust20 = 1+(Kg.*CLa.*Ue.*Vbcd)./(498.*W./BestOverallS);
+nngust20    = 1-(Kg.*CLa.*Ue.*Vbcd)./(498.*W./BestOverallS);
+Vb      = sqrt(2*ngust20(1).*W./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
+Vgustlines  = [0,Vb;0,Vc;0,Vd];
+ngustlines  = [1,ngust20(1);1,ngust20(2);1,ngust20(3)];
+nngustlines = [1,nngust20(1);1,nngust20(2);1,nngust20(3)];
+Vgt     = [Vb,Vc,Vd];
+ngt     = ngust20';
+nngt    = nngust20';
+
+mugem     = 2.*(Wem/BestOverallS)./(p_sealevel.*l(1).*CLa.*g);
+Kgem      = 0.88.*mugem/(5.3+mugem);
+Aem       = p_sealevel.*Clmax_cruise/(2*Wem./BestOverallS);
+Bem       = Kgem.*CLa.*Ue(1)/(489.*Wem./BestOverallS);
+Vbem      = (Bem-sqrt(Bem^2-4*Aem))/(2*Aem);
+Vbcdem    = [Vbem;Vcem;Vdem];
+ngust20em = 1+(Kgem.*CLa.*Ue.*Vbcdem)./(498.*Wem./BestOverallS);
+nngust20em = 1-(Kgem.*CLa.*Ue.*Vbcdem)./(498.*Wem./BestOverallS);
+Vbem      = sqrt(2*ngust20em(1).*Wem./(BestOverallS.*Clmax_cruise.*p_sealevel))./1.688;
+Vgustlinesem = [0,Vbem;0,Vcem;0,Vdem];
+ngustlinesem = [1,ngust20em(1);1,ngust20em(2);1,ngust20em(3)];
+nngustlinesem = [1,nngust20em(1);1,nngust20em(2);1,nngust20em(3)];
+Vgtem = [Vbem,Vcem,Vdem];
+ngtem     = ngust20em';
+nngtem    = nngust20em';
+% V-n Plotting
+
+
+figure(b)
+hold on
+plot(V_EAS,n,'k',V_EASm,nm,'k',Veas,nc,'k',Vsline,Vsnline,'k')
+plot(Vgustlines(1,:),ngustlines(1,:),'b--',Vgustlines(2,:),ngustlines(2,:),'b--',Vgustlines(3,:),ngustlines(3,:),'b--')
+plot(Vgustlines(1,:),nngustlines(1,:),'b--',Vgustlines(2,:),nngustlines(2,:),'b--',Vgustlines(3,:),nngustlines(3,:),'b--')
+plot(Vgt,ngt,'r',Vgt,nngt,'r')
+title('Full Weight V-n')
+xlabel('V (knots)')
+ylabel('Load n')
+b = b + 1;
+figure(b)
+hold on
+plot(V_EASem,nem,'r',V_EASmem,nmem,'r',Veasem,nc,'r',Vslineem,Vsnlineem,'r')
+plot(Vgustlinesem(1,:),ngustlinesem(1,:),'m--',Vgustlinesem(2,:),ngustlinesem(2,:),'m--',Vgustlinesem(3,:),ngustlinesem(3,:),'m--')
+plot(Vgustlinesem(1,:),nngustlinesem(1,:),'m--',Vgustlinesem(2,:),nngustlinesem(2,:),'m--',Vgustlinesem(3,:),nngustlinesem(3,:),'m--')
+plot(Vgtem,ngtem,'b',Vgtem,nngtem,'b')
+title('Empty Weight V-n')
+xlabel('V (knots)')
+ylabel('Load n')
 end 
