@@ -153,7 +153,7 @@ figure(1)
 plot(CD(1,:),CL(1,:),CD(2,:),CL(2,:),CD(3,:),CL(3,:),CD(4,:),CL(4,:),CD(5,:),CL(5,:))
 xlabel('C_D','FontSize',20)
 ylabel('C_L','FontSize',20)
-title('Polar Plot','FontSize',24)
+title('Drag Polar','FontSize',24)
 legend('TO Flaps Gear','TO Gear','Cruise','La Flaps Gear','La Gear')
 
 function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
