@@ -8,15 +8,15 @@ dt = 10;                 %weight convergence number
 Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute slower.
 Plot_Graphs = 0;         %Turns plotting on and off
 
-TS_Xmin = 700;
-TS_Xmax = 1300;
+TS_Xmin = 900;
+TS_Xmax = 1800;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T
 
-%AR = 8.938776;                        % Aspect Ratio
-AR = linspace(7,15,25);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 13.667;                        % Aspect Ratio
+AR = linspace(7,15,15);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;
 
@@ -26,7 +26,7 @@ S_Fuselage  = 2690;         %From CAD Model
 t_c_root    = .11;          % Thickness to Chord Ratio at Root
 S_csw       = 283;          % Control Surface Area in ft^2
 
-taper       = .3;
+taper       = .26;
 sweep       = 27;
 
 Clmax_to = 1.67;
@@ -107,7 +107,7 @@ end
     W0_guess = 100000;
     converge = 99999999;
     
-    [SHT, SVT] = stabilizers(S, AR);
+    [SHT, SVT, ~, ~, ~, ~] = stabilizers(S, AR);
 
     Mach_sea = 0.2;    
     q = .5*1.4*0.000364*Mach_sea^2;
@@ -222,7 +222,7 @@ end
         p_cruise = p;
         V_cruise = M * sqrt(1.4*1716*T); % ft/s
                
-        [SHT, SVT] = stabilizers(Sref, AR);
+        [SHT, SVT, ~, ~, ~, ~] = stabilizers(Sref, AR);
         
         Swet = S_Fuselage + 2*Sref + 2*SHT+2*SVT;  %Wetted area of fuselage, wing, HTail, VTail   ;         %Fuselage Surface Area = 2690 ft^2
 
@@ -247,7 +247,7 @@ end
 %                    % or speed. 
 %                 end 
         f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
-        Ne = 1.5*2.5;
+        Ne = 1.5*2;
         eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
         fprintf('e clean = %f \n\n', eclean);
         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
@@ -691,13 +691,19 @@ end
         %CGz = 7.02;
         
         c_root = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
-        
+        MAC = (2/3)*c_root*(1+taper + taper^2)/(1+taper);
+        [SHT, SVT, H_c, V_c, h_span, v_span] = stabilizers(Sref, AR);
         % Raymr for a business jet         
         % Variables
         % Component order
         % Wing, VTail, HTail, Fuselage, Nacelle
         % length
-        l = [10.17, 12.649, 9.523, 91.914, 18.333];   % Updated 11/15/2017
+        VTPR = 0.4;
+        HTPR = 0.7;
+        MAC_VT = V_c*(2/3)*(1+VTPR+VTPR^2)/(1+VTPR);
+        MAC_HT = H_c*(2/3)*(1+HTPR+HTPR^2)/(1+HTPR);
+        
+        l = [MAC, MAC_VT, MAC_HT, Fl, 18.333];   % Updated 11/15/2017
         % Thickness
         t = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
         % Chord wise location of max airfoil thickness
@@ -706,7 +712,7 @@ end
         St = 184.21; % Nacelle Wetted Area
         % Changing with Sref input
         
-        [SHT, SVT] = stabilizers(Sref, AR);
+        
         
         Swetc = [2*Sref, SVT, SHT, S_Fuselage-2*St, 2*St];
         % Component Sweep
@@ -849,7 +855,7 @@ end
         plot_drag = sprintf('Max L/D = %f', LoD);
     end
 %%
-function [SHT, SVT] = stabilizers(SW, AR)
+function [SHT, SVT, H_c, V_c, h_span, v_span] = stabilizers(SW, AR)
 %in between jet transport and general aviation twin engine
 
 cw = 2*SW/(sqrt(SW*AR)*(1+taper));
@@ -864,6 +870,22 @@ LHT = 0.48*Fl;
 LVT = 0.45*Fl;
 SVT = bw*SW*cvt/LVT;
 SHT = cw*SW*cht/LHT;
+
+VTPR =.4 ;
+%Horizontal taper ratio
+HTPR = .7;
+%Horizontal aspect ratio
+HAR = 4;
+%Vertical aspect ratio
+VAR = 1.2;
+h_span = sqrt(HAR*SHT);
+v_span = sqrt(VAR*SVT);
+H_c = SHT / h_span; %MAC
+V_c = SVT / v_span; %MAC
+%outputs
+H_c_root = 1.5*H_c*(1+ HTPR + HTPR^2)/(1+HTPR);
+V_c_root = 1.5*V_c*(1+ VTPR + VTPR^2)/(1+VTPR);
+
 end
 
 end 
