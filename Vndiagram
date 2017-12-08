@@ -893,7 +893,9 @@ figure(1)
 hold on
 plot(V_up,n_up,V_dn,n_dn)
 plot([Va,Vd],[2.5,2.5],[Vd,Vd],[2.5,0],[Vd,Vc],[0,-1],[Vc,V_dn(100)],[-1,-1],[Vs,Vs],[1,n_s_l])
-
+title('Flight Envelope at 20,000 ft MTOW','FontSize',16)
+xlabel('Air Speed (knots)','FontSize',14)
+ylabel('Loading','FontSize',14)
 
 % Gust lines
 c = l(1);
@@ -953,4 +955,7 @@ Ue      = [66; 50; 25];
 ngust_up = 1 + Kg.*CLa.*Ue./(498.*W./BestOverallS).*Vgust;
 ngust_dn = 1 - Kg.*CLa.*Ue./(498.*W./BestOverallS).*Vgust;
 plot(Vgust,ngust_up,Vgust,ngust_dn)
+title('Flight Envelope at 20,000 ft Empty','FontSize',16)
+xlabel('Air Speed (knots)','FontSize',14)
+ylabel('Loading','FontSize',14)
 end 
