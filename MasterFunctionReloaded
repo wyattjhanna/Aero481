@@ -9,7 +9,7 @@ Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute s
 Plot_Graphs = 1;         %Turns plotting on and off
 
 TS_Xmin = 700;
-TS_Xmax = 2300;
+TS_Xmax = 1300;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
@@ -152,18 +152,19 @@ end
         AllElse = 0.1*W0_guess;          
         
         %Raymber GA
-        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+%         Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
         Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
         * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         %torenbeek: light transport
-        %Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
-        %        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
+        b = sqrt(AR*S);
+        Wing(3,:) = .00125.*W0_guess.*(b./(cos(sweep/2))).^0.75.*(1+sqrt(6.3*cos(sweep/2)./b))...
+               .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cos(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
-        Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+        Wing(4,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
          / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
      
-        Wing_avg = (Wing(1,:)+Wing(2,:)+Wing(3,:))/3;
+        Wing_avg = (Wing(2,:)+Wing(3,:)+Wing(4,:))/3;
         
         %Wing_avg = 10*S;
         
@@ -718,16 +719,14 @@ end
         % Component order
         % Wing, VTail, HTail, Fuselage, Nacelle
         % length
-        l = [MAC, 12.649, H_MAC, Fl, 18.333];   % Updated 11/15/2017
+        l = [MAC, V_MAC, H_MAC, Fl, 14.16];   % Updated 11/15/2017
         % Thickness
         t = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
         % Chord wise location of max airfoil thickness
-        xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
+        xc = [.11*MAC, .12*V_MAC, .12*H_MAC];                    % Updated 11/15/2017
         % Wetted Areas
         St = 184.21; % Nacelle Wetted Area
         % Changing with Sref input
-        
-        
         
         Swetc = [2*Sref, 2*SVT, 2*SHT, S_Fuselage-2*St, 2*St];
         % Component Sweep
@@ -839,11 +838,16 @@ end
         
         % CDtrim  
         
-        CLmindrag = 0.5;                                    % from Xfoil
+        CLmindrag = 0.42;                                    % from Xfoil
         CLmins = CLmindrag*[1;1;1;1;1];
         CLmin = CLmins.*ones(size(CL));  
         
         %CDtrim  = 0.0295.*(CL-CLmin).^2 + 0.0004.*(CL-CLmin) + 0.0004;
+        
+        Ne = 1.5*2.5;
+        f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
+        eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         
         MDD = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (CL-CLmin) ./ (10*(cos(sweep))^3 ));
         Mcrit = MDD - (.1/80)^(1/3);
