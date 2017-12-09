@@ -6,7 +6,7 @@ clc
 close all
 dt = 1;                 %weight convergence number
 Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 0;         %Turns plotting on and off
+Plot_Graphs = 1;         %Turns plotting on and off
 
 TS_Xmin = 500;
 TS_Xmax = 1800;
@@ -15,8 +15,8 @@ TS_Xmax = 1800;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T
 
-%AR = 10;                        % Aspect Ratio
-AR = linspace(8,18,11);        %we can loop through with different aspect ratios. 3 graphs per loop\
+                      % Aspect Ratio
+AR = linspace(12,15,4);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;                % Fuselage Length
 
@@ -31,8 +31,8 @@ sweep       = 30;
 
 Clmax_to = 1.667;
 Clmax_land = 2.044;
-Clmax_cruise= 0.8;
-Cl_cruise = 0.6;
+Clmax_cruise= 1;
+Cl_cruise = 0.92;
 
 M =.85;                         %cruise speed
 Cruise_alt = 55000;             %cruise alititude
@@ -445,7 +445,7 @@ end
      
              S_loop = Surface(ii);
              [LOD, ~,~] = Drag_Polars(S_loop,AR);
-             T_loop = round(C(3,ii));
+             T_loop = round(To(ii));
              [W0_loop, ~] = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff,LOD(3));                    
              M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD(3)))))^-1;
              M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
@@ -477,8 +477,8 @@ end
         fprintf('Landing Length: %f ft \n \n', Sland_final);
         
         if Plot_Graphs == 1        
-                plot(Surface(Fuelminii),C(3,Fuelminii), 'k+', 'LineWidth', 2);
-                text(Surface(Fuelminii)+25, C(3,Fuelminii)-500, 'Design Point');
+                plot(Surface(Fuelminii),To(Fuelminii), 'k+', 'LineWidth', 2);
+                text(Surface(Fuelminii)+25, To(Fuelminii)-500, 'Design Point');
                 set(gca,'XTick',200:200:TS_Xmax)
                 set(gca,'XTickLabel',200:200:TS_Xmax)
 
@@ -500,9 +500,8 @@ end
         %e depends on our different configurations during flight
         Ne = 1.5*2.5;
         f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
-       % eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
-        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
-       
+        %eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+       eclean = 1.78*(1-0.045*AR^0.68)-0.64;
        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
        %      1              2            3       4        5            6       <- Climb #
         Const = pi*AR.*e;
@@ -608,7 +607,7 @@ end
         % Flap deflection (deg)
         df = 20;                                      % Updated 11/15/2017
         % Flapped area percent
-        Af = 225.24/Sref;                             % Updated 11/15/2017
+        Af = .75;                             % Updated 11/15/2017
         % Tail Aspect Ratio
         %ARt = 2.86;
         % Leading Edge x location
@@ -684,7 +683,7 @@ end
 
         % Leakages and Proturbances Drag
         % 2 - 5 % of parasite drag
-        CD_LP   = CD_para*1.035;
+        CD_LP   = CD_para*0.035;
 
         CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
             CD_para(1) + CD_flaps + CD_LP(1);
@@ -695,12 +694,12 @@ end
         
         CL = [linspace(-Clmax_to, Clmax_to, 100);
             linspace(-Clmax_to, Clmax_to, 100);
-            linspace(-Cl_cruise, Cl_cruise, 100);
+            linspace(-.2, Clmax_cruise, 100);
             linspace(-Clmax_land, Clmax_land, 100);
             linspace(-Clmax_land, Clmax_land, 100)];
         
         % CDtrim  
-        CLmindrag = 0.42;                                    % from Xfoil
+        CLmindrag = 0.2;                                    % from Xfoil
         CLmins = CLmindrag*[1;1;1;1;1];
         CLmin = CLmins.*ones(size(CL));  
         
@@ -711,7 +710,7 @@ end
         %Howe Equation for efficiency 
         %eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
         eclean = 1.78*(1-0.045*AR^0.68)-0.64;
-        
+       
          e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         
         MDD = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (Cl_cruise) ./ (10*(cos(sweep))^3 ));
@@ -735,9 +734,9 @@ end
     CD0(5) = CD0(4);
     CD0(6) = CD0(5);
     
-    index1 = find(max(CL(3,:)./(CD(3,:))) == CL(3,:)./CD(3,:))
-    
-    [val,indx] =  max(CL(3,:)./CD(3,:))
+%     index1 = find(max(CL(3,:)./(CD(3,:))) == CL(3,:)./CD(3,:))
+%     
+%     [val,indx] =  max(CL(3,:)./CD(3,:))
     
         LoD(1) = max(CL(1,:)./CD(1,:));
         LoD(2) = max(CL(2,:)./CD(2,:));
