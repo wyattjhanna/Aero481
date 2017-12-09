@@ -1,5 +1,7 @@
 %% LOD Function
     function [] = PolarPlot(Sref,AR) 
+    clc
+    close all
     % PolarPlot(1140, 10.5)
         Fl          = 91.914;           % Fuselage Length
         S_Fuselage  = 2690;             % From CAD Model
@@ -165,9 +167,16 @@
               CD0(3) + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
               CD0(4) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
               CD0(5) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
-          
+        [LoD, idx] = max(CL(3,:)./(CD(3,:)));
+        
+        LDlinex = linspace(0,CD(3,idx),100);
+        LDliney = LDlinex.*LoD;
         plot(CD(1,:),CL(1,:),'r',CD(2,:),CL(2,:),'r--',CD(3,:),CL(3,:),'k',CD(4,:),CL(4,:),'b',CD(5,:), CL(5,:),'b--')
+        hold on
+        plot(LDlinex,LDliney,'k--')
+        scatter(CD(3,idx),CL(3,idx),20,'r','filled')
         title('Drag Polar','FontSize',16)
+        axis([0 0.2 -0.5 2.5])
         xlabel('CD','FontSize',14)
         ylabel('CL','FontSize',14)
         legend('Takeoff: Gear + Flaps','Takeoff: Flaps','Cruise','Landing: Gear + Flaps','Landing: Flaps')
