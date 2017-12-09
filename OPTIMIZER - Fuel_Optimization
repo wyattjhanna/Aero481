@@ -1,0 +1,467 @@
+function [Fuel_weight] = Fuel_Optimization(Inputs)
+
+global taper
+
+AR = Inputs(1,1);
+taper = Inputs(1,2);
+sweepIn = Inputs(1,3);
+S = Inputs(1,4);
+T = Inputs(1,5);
+
+fprintf('--------------- AR %f ---------------\n \n',AR);
+
+fprintf('Guess Aspect Ratio: %.1f \n', Inputs(1,1));
+fprintf('Guess taper Ratio : %.3f \n', Inputs(1,2));
+fprintf('Guess sweep angle : %.1f deg\n', Inputs(1,3))
+fprintf('Guess Sref        : %.1f ft^2\n', Inputs(1,4))
+fprintf('Guess thrust      : %.1f lbf\n\n', Inputs(1,5))
+
+% This function calculates a new wing loading every time and uses the drag polar calculated drag for fuel burn and TS plots.
+%% -------------------------- Initialization --------------------------
+
+dt = 1;                 %weight convergence number
+Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute slower.
+Plot_Graphs = 0;         %Turns plotting on and off
+
+TS_Xmin = 700;
+TS_Xmax = 1300;
+%% ------------------ Global Variables for Functions ------------------
+%all variables are in Enlish Units
+%Declare global variables
+global M Cruise_alt Sland sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise Temp
+
+Fl = 91.914;                % Fuselage Length
+
+Payload = 2600;
+
+S_Fuselage  = 2690;         %From CAD Model
+t_c_root    = .11;          % Thickness to Chord Ratio at Root
+
+Clmax_to = 1.667;
+Clmax_land = 2.044;
+Clmax_cruise= 1;
+Cl_cruise = 0.61;
+
+M =.85;                         %cruise speed
+Cruise_alt = 55000;             %cruise alititude
+Sland = 4956;                   %Landing runway length
+Range = 5200;                   %[nmi]
+
+Cf = 0.003;                     %Based on Raymer
+sfc = 0.6;                      %specific fuel consumption
+
+%% ----------------------- Initial Weight Guess -----------------------
+
+MTOW_Guess = 70000;              % Takeoff Weight (lbs)
+Sref_Guess = 1100;               % Wing area (ft^2)
+
+
+%% ------------------ Calculations ------------------
+
+sweep = deg2rad(sweepIn);
+
+if AR < 20
+[Fuel_weight, MTOW] = TS(MTOW_Guess, AR, Sref_Guess, Clmax_to, Clmax_land,sweep);
+    
+else
+Fuel_weight = 99999
+end
+
+%% --------------------- Weight Estimate ---------------------
+     function [ W0, W0S0 ] = WeightEstimate( S, T, AR, taper, sweep, M_ff, LOD)
+    
+    T = T/2;    
+        
+    W0_guess = 100000;
+    converge = 99999999;
+    
+    [SHT, SVT] = stabilizers(S, AR);
+
+    Mach_sea = 0.2;    
+    q = .5*1.4*0.000364*Mach_sea^2;
+    
+    c_root = 2*S/(sqrt(S*AR)*(1+taper));   
+    
+    HTail   = 5.5*SHT;  % Horizontal Tail Sref
+    VTail   = 5.5*SVT;  % Vertical Tail Sref
+    Fuse    = 5*S_Fuselage;   % Fuselage Swet
+    %engine specs
+    EDry    = 0.521*(T)^0.9;
+    EOil    = 0.082*(T)^0.65;
+    Erev    = 0.034*(T);
+    EControl= 0.26*(T)^0.5;
+    EStart  = 9.33*(EDry/1000)^1.078;   
+    Engine      = 2*(EDry+EOil+Erev+EControl+EStart)*1.4;
+    
+    N_z         = (1.5 * 2.5);  % Ultimate Load Factor
+
+    M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD))))^-1;
+
+    M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
+    
+    S_csw = .75*.27*S; % Control Surface Area in ft^2
+    
+    while converge > 0.1
+        
+        Fuel = M_fff*W0_guess;
+
+        LGear   = 0.043*W0_guess;
+        AllElse = 0.1*W0_guess;          
+        
+        %Raymber GA
+         %Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+        %raymer transport
+        Wing(1,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
+        * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
+        %torenbeek: light transport
+%         b = sqrt(AR*S);
+%         Wing(2,:) = .00125.*W0_guess.*(b./(cos(sweep/2))).^0.75.*(1+sqrt(6.3*cos(sweep/2)./b))...
+%                .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cos(sweep/2))).^0.3;
+        %Nicolai General Dynamics transport
+        Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+         / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
+     
+        Wing_avg = (Wing(1,:)+Wing(3,:))/2;
+        
+        %Wing_avg = (Wing(2,:));
+        
+        W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
+        
+        converge = abs(W0_guess-W0);
+        
+        W0_guess = W0;
+        W0S0 = W0_guess/S;
+    end
+%
+        
+    end
+%% ------------------- Standard Atmosphere Function -------------------
+    function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
+        
+        altitude = round(altitude/3.28084); % Converting ft to m
+        
+        %heightm = [0:1:32000];
+        tempK = zeros(1,32001);
+        %tempC = zeros(1,32001);
+        pressureNM2 = zeros(1,32001);
+        densityKGM3 = zeros(1,32001);
+        pasttemp = 288.15;
+        press0 = 101325;
+        
+        for H = 1:11000
+            nexttemp = pasttemp + (-6.5)/1000;
+            tempK(H) = pasttemp;
+            pasttemp = nexttemp;
+        end
+        
+        for H = 11000:20000
+            tempK(H) = pasttemp;
+        end
+        
+        for H = 20000:32001
+            nexttemp = pasttemp + (1)/1000;
+            tempK(H) = pasttemp;
+            pasttemp = nexttemp;
+        end
+        
+        %tempC = tempK - 273.15;
+               
+        for H = 1:11000
+            pressureNM2(H) = press0 * (288.15 /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * -0.0065));
+        end
+        
+        for H = 11000:20000
+            pressureNM2(H) = pressureNM2(11000) * exp(-9.81 * 0.0289644 * (H - 11000)/ (8.31432 * tempK(11000)));
+        end
+        
+        for H = 20000:32001
+            pressureNM2(H) = pressureNM2(20000) * (tempK(20000) /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * 0.001));
+        end
+        for H = 1:32000
+            densityKGM3(H) = (0.0289644 * pressureNM2(H))/(8.31432 * tempK(H));
+        end
+        
+        Density     = densityKGM3(altitude)*0.0019403203; % density in slugs/ft^3
+        Pressure    = pressureNM2(altitude)* 0.000145038; % pressure in psi
+        Temperature = tempK(altitude)* 1.8; % temperature in R
+
+    end
+%% --------------------- TW WS, Polar Plots, T-S ---------------------
+    function [Fuel_Weight, MTOW] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,sweep)
+%% ------------------------------- TS -------------------------------
+
+ % Math Zone
+        [p, ~, Temp] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
+        p_cruise = p;
+        V_cruise = M * sqrt(1.4*1716*Temp); % ft/s
+               
+        [SHT, SVT] = stabilizers(Sref, AR);
+        
+        Swet = S_Fuselage + 2*Sref + 2*SHT+2*SVT;  %Wetted area of fuselage, wing, HTail, VTail   ;         %Fuselage Surface Area = 2690 ft^2
+
+        Cdo = Cf*Swet/Sref;
+        %initial cdo pulled from historical data, depends on the landing
+        %gear and flaps at different climbs
+        Cdo = [.015+.02, .015+.02, .015, 0, .065+.02,.065+.02]+Cdo;
+        vector = ones(1,1001); % Makes somthing a 1001 long vector.
+        %minimum G for flight, vertical distance/horizontal
+        G =  [1.3,   .1,  2.5,  1.3,  3.3,  2.2]/100;
+        %given ks for different flights from FAR requirments
+        ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
+        
+        %e depends on our different configurations during flight
+%         Ne = 1.5*2.5;
+%         f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
+%         eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+        %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 3.1;
+
+        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
+        %      1              2            3       4        5            6       <- Climb #
+        
+        Const = pi*AR.*e;
+        CL = [Clmax_to, Clmax_to, Cl_cruise, Cl_cruise, Clmax_land, Clmax_land];
+
+        
+        p = Standard_Atmosphere_IMPERIAL(66); % Takeoff air density (slugs)
+        p_sl = Standard_Atmosphere_IMPERIAL(2); %air density at sea level (slugs) code wont work at 0 for some reason
+        
+        M_ff = [0.99   0.995 0.995   0.98  0.692  0.9753 0.99    0.9606      0.992];
+
+        
+            [LOD, ~] = Drag_Polars(S,AR);
+            M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD(3)))))^-1;
+            M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
+                
+
+            [W0_loop, ~] = WeightEstimate(S,T,AR, taper, sweep, M_ff,LOD(3));            
+            
+            
+            
+            
+            Fuel_Weight = M_fff * W0_loop;
+            
+            
+            fprintf('Loop MTOW       : %f lbs \n', W0_loop);
+            fprintf('Loop Fuel Weight: %f lbs \n\n', Fuel_Weight);
+            
+%             if taper < .26
+%                  Fuel_Weight = 999999;
+%             end
+       
+    end   
+%% LOD Function
+     function [LoD, CD0, CD] = Drag_Polars(Sref,AR) 
+        [SHT, SVT] = stabilizers(Sref, AR);
+        
+        c_root = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
+        MAC = (2/3)*c_root*(1+taper + taper^2)/(1+taper);
+        VAR = 0.9;
+        HAR = 4.0;
+        HTPR = 0.7;
+        VTPR = 0.5;
+        v_span = sqrt(SVT*VAR);
+        h_span = sqrt(SHT*HAR);
+        v_croot = 2*SVT/(v_span*(1+VTPR));
+        h_croot = 2*SHT/(h_span*(1+HTPR));
+        V_MAC = v_croot*(2/3)*(1+VTPR+VTPR^2)/(1+VTPR);
+        H_MAC = h_croot*(2/3)*(1+HTPR+HTPR^2)/(1+HTPR);
+        
+        % Raymr for a business jet         
+        % Variables
+        % Component order
+        % Wing, VTail, HTail, Fuselage, Nacelle
+        % length
+        l = [MAC, V_MAC, H_MAC, Fl, 14.16];   % Updated 11/15/2017
+        % Thickness
+        t = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
+        % Chord wise location of max airfoil thickness
+        xc = [.11*MAC, .12*V_MAC, .12*H_MAC];                    % Updated 11/15/2017
+        % Wetted Areas
+        St = 184.21; % Nacelle Wetted Area
+        % Changing with Sref input
+        Swetc = [2*Sref, 2*SVT, 2*SHT, S_Fuselage-2*St, 2*St];
+        % Component Sweep
+        Lm = [sweep, .92153, .70685];
+        % Takeoff, Landing Velocity (ft/s)
+        %[~, ~, Temp] = Standard_Atmosphere_IMPERIAL(66);
+        Temp = 518.477;
+        a = sqrt(1.4*1716*Temp);
+        Mto = 0.12;
+        Mland = 0.14;
+        %V = [196.533, 157.96];                        % Updated 11/15/2017
+        V = [Mto*a, Mland*a];
+        % Takeoff, Landing Speed of sound
+                                      
+        % Flap cord percent
+        cfc = 0.17;                                   % Updated 11/15/2017
+        % Flap deflection (deg)
+        df = 20;                                      % Updated 11/15/2017
+        % Flapped area percent
+        Af = .75;                             % Updated 11/15/2017
+        % Tail Aspect Ratio
+        %ARt = 2.86;
+        % Leading Edge x location
+        %LEx = [45.565 89.612];
+        % Skin Roughness Value
+        % Camo on Aluminum, Smooth Paint, Production Sheet Metal, Polished Sheet
+        % metal, Smooth molded composite
+        % (1-5) Surface Choice
+        %k = 2;                                        % Updated 11/15/2017
+        %K = [3.33, 2.08, 1.33, 0.5, 0.17]*10^-5;
+        
+        % CD0 Drag = CDparasite + CDmisc + CDLP
+        % Component Reynolds number (Transonic)
+        rho = 23.77*10^-4;
+        rho2 = 2.7*10^-4;
+        mu = 3.737*10^-7;
+        ReTo = rho.*V(1).*l./mu; % Takeoff Reynolds
+%         ReCr = 44.62*(l/K(k)).^(1.053)*M^1.16; % Cruise Reynolds
+        ReLa = rho.*V(2).*l./mu; % Landing Reynolds
+        
+        mu_cr = 2.969e-7;
+        ReCr = V_cruise*rho2/mu_cr.*l;
+        
+        % Parasite Drag
+        % Laminar
+        Cf_laminarTo   = 1.328./sqrt(ReTo);
+        Cf_laminarCr   = 1.328./sqrt(ReCr);
+        Cf_laminarLa   = 1.328./sqrt(ReLa);
+        % Turbulent
+        Mto = V(1)/a;
+        Mla = V(2)/a;
+        Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
+        Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*M.^2).^0.65);
+        Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
+        % Average of Laminar and turbulent
+        Cfc_avg        = [(Cf_laminarTo*0 + Cf_turbulentTo*1);
+                        (Cf_laminarCr*0 + Cf_turbulentCr*1);
+                        (Cf_laminarLa*0 + Cf_turbulentLa*1)];
+
+        % Component Form Factors
+        % Wing, VTail, HTail
+        tc     = t(1:3)/l(1:3);
+        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cos(Lm).^0.28);
+        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cos(Lm).^0.28);
+        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cos(Lm).^0.28);
+        % length/thickness for fuselage and nacelle
+        f_fuse   = l(4)/t(4);
+        f_nace   = l(5)/t(5);
+        % Fuselage
+        FFfuse   = (1 + 60/f_fuse^3 + f_fuse/400);
+        % Nacelle
+        FFnace   = 1 + 0.35/f_nace;
+
+        FFc      = [FFcompTo, FFfuse, FFnace;
+                FFcompCr, FFfuse, FFnace;
+                FFcompLa, FFfuse, FFnace];
+
+        % Interference Factor
+        % [Ranges based on fillet(1.1-1.4),
+        Qc      = [1.1, 1.06, 1.06, 1, 1.3];
+
+        Ncomp     = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swetc;Swetc;Swetc];
+        CD_para = sum(Ncomp,2)/Sref; 
+        % Miscellaneous Drag (Landing Gear, Flaps)
+        % Landing Gear;
+        DqA = [0.25 0.15 0.18 0.13 0.05 0.3 1.4 1];
+        % Landing gear frontal areas
+        LA = [2.67 2.67 0 0 0 0 0 0];
+        Dqc = DqA.*LA;
+        CD_landgear = 2*1/Sref*(sum(Dqc));
+        % Flaps
+        CD_flaps = 1.7*(cfc)^1.38*(Af)*(sind(df))^2;
+
+        % Leakages and Proturbances Drag
+        % 2 - 5 % of parasite drag
+        CD_LP   = CD_para*0.035;
+
+        CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
+            CD_para(1) + CD_flaps + CD_LP(1);
+            CD_para(2) + CD_LP(2);
+            CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
+            CD_para(3) + CD_flaps + CD_LP(3)];
+        
+        
+        CL = [linspace(-Clmax_to, Clmax_to, 100);
+            linspace(-Clmax_to, Clmax_to, 100);
+            linspace(-.2, Clmax_cruise, 100);
+            linspace(-Clmax_land, Clmax_land, 100);
+            linspace(-Clmax_land, Clmax_land, 100)];
+        
+        % CDtrim  
+        CLmindrag = 0.2;                                    % from Xfoil
+        CLmins = CLmindrag*[1;1;1;1;1];
+        CLmin = CLmins.*ones(size(CL));  
+        
+        %CDtrim  = 0.0295.*(CL-CLmin).^2 + 0.0004.*(CL-CLmin) + 0.0004;
+        
+        Ne = 1.5*2.5;
+        f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
+        %Howe Equation for efficiency 
+        %eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+        %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 3.1;
+       
+         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
+        
+        MDD = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (Cl_cruise) ./ (10*(cos(sweep))^3 ));
+        Mcrit = MDD - (.1/80)^(1/3);
+        CDwave = 20*(M-Mcrit).^4;
+                
+        
+        CD = [CD0(1)   + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
+              CD0(2)   + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+              CD0(3)   + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+              CD0(4)   + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+              CD0(5)   + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+          
+          
+         
+    %max LOD for each climb.. 1,2,3,4,5,6,cruise
+    CD0(1) = CD0(1);
+    CD0(2) = CD0(2);
+    CD0(3) = CD0(3);
+    CD0(4) = CD0(3);
+    CD0(5) = CD0(4);
+    CD0(6) = CD0(5);
+    
+%     index1 = find(max(CL(3,:)./(CD(3,:))) == CL(3,:)./CD(3,:))
+%     
+%     [val,indx] =  max(CL(3,:)./CD(3,:))
+    
+        LoD(1) = max(CL(1,:)./CD(1,:));
+        LoD(2) = max(CL(2,:)./CD(2,:));
+        LoD(3) = max(CL(3,:)./(CD(3,:)));
+        LoD(4) = max(CL(3,:)./CD(3,:));
+        LoD(5) = max(CL(4,:)./CD(4,:));
+        LoD(6) = max(CL(5,:)./CD(5,:));
+        LoD(7) = max(CL(3,:)./CD(3,:));
+        
+        
+        plot_drag = sprintf('Max L/D = %f', LoD);
+    end
+%%
+function [SHT, SVT] = stabilizers(SW, AR)
+%in between jet transport and general aviation twin engine
+
+cw = 2*SW./(sqrt(SW.*AR)*(1+taper));
+bw = sqrt(SW*AR);
+
+cht = .66;
+cvt = 0.045;
+%45% for Vertical tail
+%48% for Horizontal tail
+%looking at convential business jets, it looks similar to this
+LHT = 0.48*Fl;
+LVT = 0.45*Fl;
+SVT = bw*SW*cvt/LVT;
+SHT = cw*SW*cht/LHT;
+end
+
+figure(1)
+hold on
+scatter(S,T,'g')
+xlabel('S')
+ylabel('T')
+end 
