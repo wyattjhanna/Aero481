@@ -32,13 +32,13 @@ Clmax_to = 1.8;
 Clmax_land = 2.1;
 Cl_cruise = 0.6;
 
-M =.8;                         %cruise speed
+M =.8;                          %cruise speed
 Cruise_alt = 55000;             %cruise alititude
 Sland = 6000;                   %Landing runway length
 Range = 6750;                   %[nmi]
 
 Cf = 0.003;                     %Based on Raymer
-sfc = 0.67;                      %specific fuel consumption
+sfc = 0.67;                     %specific fuel consumption
 
 %% ----------------------- Initial Weight Guess -----------------------
 
