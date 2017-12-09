@@ -40,6 +40,8 @@ Range = 5200;                   %[nmi]
 Cf = 0.003;                     %Based on Raymer
 sfc = 0.6;                      %specific fuel consumption
 
+e_cor = 2.7;
+
 %% ----------------------- Initial Weight Guess -----------------------
 
 MTOW_Guess = 70000;              % Takeoff Weight (lbs)
@@ -90,6 +92,8 @@ end
 
     M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
     
+    S_csw = .75*.27*S; % Control Surface Area in ft^2
+    
     while converge > 0.1
         
         Fuel = M_fff*W0_guess;
@@ -98,20 +102,21 @@ end
         AllElse = 0.1*W0_guess;          
         
         %Raymber GA
-        Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+         %Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
-        Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
+        Wing(1,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
         * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         %torenbeek: light transport
-        %Wing(3,:) = .00125.*W0_guess.*(b./(cosd(sweep/2))).^0.75.*(1+sqrt(6.3*cosd(sweep/2)./b))...
-        %        .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cosd(sweep/2))).^0.3;
+        b = sqrt(AR*S);
+        Wing(2,:) = .00125.*W0_guess.*(b./(cos(sweep/2))).^0.75.*(1+sqrt(6.3*cos(sweep/2)./b))...
+               .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cos(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
         Wing(3,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
          / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
      
-        Wing_avg = (Wing(1,:)+Wing(2,:)+Wing(3,:))/3;
+        Wing_avg = (Wing(1,:)+Wing(3,:))/2;
         
-        %Wing_avg = 10*S;
+        %Wing_avg = (Wing(2,:));
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -120,7 +125,8 @@ end
         W0_guess = W0;
         W0S0 = W0_guess/S;
     end
-%     WS = W0_guess/S;
+%
+        
     end
 %% ------------------- Standard Atmosphere Function -------------------
     function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
@@ -200,8 +206,11 @@ end
         ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
         
         %e depends on our different configurations during flight
-        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
         %eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
+        
+        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - e_cor;
+        
         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         %      1              2            3       4        5            6       <- Climb #
         
@@ -405,7 +414,10 @@ end
         %given ks for different flights from FAR requirments
         ks = [1.2,  1.15, 1.2,  1.25, 1.3,  1.5];
         %e depends on our different configurations during flight
-       eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
+        
+       
+       eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - e_cor;
+       
        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
        %      1              2            3       4        5            6       <- Climb #
         Const = pi*AR.*e;
