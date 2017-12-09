@@ -40,8 +40,6 @@ Range = 5200;                   %[nmi]
 Cf = 0.003;                     %Based on Raymer
 sfc = 0.6;                      %specific fuel consumption
 
-e_cor = 2.7;
-
 %% ----------------------- Initial Weight Guess -----------------------
 
 MTOW_Guess = 70000;              % Takeoff Weight (lbs)
@@ -209,7 +207,7 @@ end
         %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
         %eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
         
-        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - e_cor;
+        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
         
         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         %      1              2            3       4        5            6       <- Climb #
@@ -416,7 +414,7 @@ end
         %e depends on our different configurations during flight
         
        
-       eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - e_cor;
+       eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
        
        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
        %      1              2            3       4        5            6       <- Climb #
@@ -477,42 +475,54 @@ end
         
     end
 %% LOD Function
-    function [LoD, CD0] = Drag_Polars(Sref,AR) 
-        fig_num = 2;
-        %CGx = 61.2;
-        %CGz = 7.02;
+    function [LoD, CD0, CD] = Drag_Polars(Sref,AR) 
+        [SHT, SVT] = stabilizers(Sref, AR);
         
         c_root = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
+        MAC = (2/3)*c_root*(1+taper + taper^2)/(1+taper);
+        VAR = 0.9;
+        HAR = 4.0;
+        HTPR = 0.7;
+        VTPR = 0.5;
+        v_span = sqrt(SVT*VAR);
+        h_span = sqrt(SHT*HAR);
+        v_croot = 2*SVT/(v_span*(1+VTPR));
+        h_croot = 2*SHT/(h_span*(1+HTPR));
+        V_MAC = v_croot*(2/3)*(1+VTPR+VTPR^2)/(1+VTPR);
+        H_MAC = h_croot*(2/3)*(1+HTPR+HTPR^2)/(1+HTPR);
         
         % Raymr for a business jet         
         % Variables
         % Component order
         % Wing, VTail, HTail, Fuselage, Nacelle
         % length
-        l = [10.17, 12.649, 9.523, 91.914, 18.333];   % Updated 11/15/2017
+        l = [MAC, V_MAC, H_MAC, Fl, 14.16];   % Updated 11/15/2017
         % Thickness
         t = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
         % Chord wise location of max airfoil thickness
-        xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
+        xc = [.11*MAC, .12*V_MAC, .12*H_MAC];                    % Updated 11/15/2017
         % Wetted Areas
         St = 184.21; % Nacelle Wetted Area
         % Changing with Sref input
-        
-        [SHT, SVT] = stabilizers(Sref, AR);
-        
-        Swetc = [2*Sref, SVT, SHT, S_Fuselage-2*St, 2*St];
+        Swetc = [2*Sref, 2*SVT, 2*SHT, S_Fuselage-2*St, 2*St];
         % Component Sweep
-        Lm = [sweep, 52.80, 40.54];
+        Lm = [sweep, .92153, .70685];
         % Takeoff, Landing Velocity (ft/s)
-        V = [196.533, 157.96];                        % Updated 11/15/2017
+        %[~, ~, Temp] = Standard_Atmosphere_IMPERIAL(66);
+        Temp = 518.477;
+        a = sqrt(1.4*1716*Temp);
+        Mto = 0.12;
+        Mland = 0.14;
+        %V = [196.533, 157.96];                        % Updated 11/15/2017
+        V = [Mto*a, Mland*a];
         % Takeoff, Landing Speed of sound
-        a = 1116.13;                                  % Updated 11/15/2017
+                                      
         % Flap cord percent
         cfc = 0.17;                                   % Updated 11/15/2017
         % Flap deflection (deg)
-        df = 30;                                      % Updated 11/15/2017
+        df = 20;                                      % Updated 11/15/2017
         % Flapped area percent
-        Af = 225.24/Sref;                             % Updated 11/15/2017
+        Af = .75;                             % Updated 11/15/2017
         % Tail Aspect Ratio
         %ARt = 2.86;
         % Leading Edge x location
@@ -533,7 +543,8 @@ end
 %         ReCr = 44.62*(l/K(k)).^(1.053)*M^1.16; % Cruise Reynolds
         ReLa = rho.*V(2).*l./mu; % Landing Reynolds
         
-        ReCr = V_cruise*rho2/mu.*l;
+        mu_cr = 2.969e-7;
+        ReCr = V_cruise*rho2/mu_cr.*l;
         
         % Parasite Drag
         % Laminar
@@ -554,9 +565,9 @@ end
         % Component Form Factors
         % Wing, VTail, HTail
         tc     = t(1:3)/l(1:3);
-        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cosd(Lm).^0.28);
-        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cosd(Lm).^0.28);
-        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cosd(Lm).^0.28);
+        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cos(Lm).^0.28);
+        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cos(Lm).^0.28);
+        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cos(Lm).^0.28);
         % length/thickness for fuselage and nacelle
         f_fuse   = l(4)/t(4);
         f_nace   = l(5)/t(5);
@@ -587,7 +598,7 @@ end
 
         % Leakages and Proturbances Drag
         % 2 - 5 % of parasite drag
-        CD_LP   = CD_para*1.035;
+        CD_LP   = CD_para*0.035;
 
         CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
             CD_para(1) + CD_flaps + CD_LP(1);
@@ -598,28 +609,39 @@ end
         
         CL = [linspace(-Clmax_to, Clmax_to, 100);
             linspace(-Clmax_to, Clmax_to, 100);
-            linspace(-Clmax_cruise, Clmax_cruise, 100);
+            linspace(-.2, Clmax_cruise, 100);
             linspace(-Clmax_land, Clmax_land, 100);
             linspace(-Clmax_land, Clmax_land, 100)];
         
         % CDtrim  
-        
-        CLmindrag = 0.5;                                    % Why is this hard coded?
+        CLmindrag = 0.2;                                    % from Xfoil
         CLmins = CLmindrag*[1;1;1;1;1];
         CLmin = CLmins.*ones(size(CL));  
         
         %CDtrim  = 0.0295.*(CL-CLmin).^2 + 0.0004.*(CL-CLmin) + 0.0004;
         
-        MDD = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (CL-CLmin) ./ (10*(cos(sweep))^3 ));
+        Ne = 1.5*2.5;
+        f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
+        %Howe Equation for efficiency 
+        %eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+        %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
+       
+         e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
+        
+        MDD = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (Cl_cruise) ./ (10*(cos(sweep))^3 ));
         Mcrit = MDD - (.1/80)^(1/3);
         CDwave = 20*(M-Mcrit).^4;
                 
-        CD = [CD0(1)  + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
-              CD0(2)  + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
-              CD0(3)  + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
-              CD0(4)  + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
-              CD0(5)  + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
-   
+        
+        CD = [CD0(1)   + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
+              CD0(2)   + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+              CD0(3)   + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+              CD0(4)   + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+              CD0(5)   + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+          
+          
+         
     %max LOD for each climb.. 1,2,3,4,5,6,cruise
     CD0(1) = CD0(1);
     CD0(2) = CD0(2);
@@ -628,10 +650,13 @@ end
     CD0(5) = CD0(4);
     CD0(6) = CD0(5);
     
+%     index1 = find(max(CL(3,:)./(CD(3,:))) == CL(3,:)./CD(3,:))
+%     
+%     [val,indx] =  max(CL(3,:)./CD(3,:))
     
         LoD(1) = max(CL(1,:)./CD(1,:));
         LoD(2) = max(CL(2,:)./CD(2,:));
-        LoD(3) = max(CL(3,:)./CD(3,:));
+        LoD(3) = max(CL(3,:)./(CD(3,:)));
         LoD(4) = max(CL(3,:)./CD(3,:));
         LoD(5) = max(CL(4,:)./CD(4,:));
         LoD(6) = max(CL(5,:)./CD(5,:));
