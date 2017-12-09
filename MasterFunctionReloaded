@@ -5,18 +5,18 @@ clc
 %clear all
 close all
 dt = 1;                 %weight convergence number
-Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 1;         %Turns plotting on and off
+Surface_Fineness = 5;    % Adjusts linspace of Surface, lower numbers compute slower.
+Plot_Graphs = 0;         %Turns plotting on and off
 
-TS_Xmin = 500;
-TS_Xmax = 1800;
+TS_Xmin = 600;
+TS_Xmax = 1700;
 %% ------------------ Global Variables for Functions ------------------
 %all variables are in Enlish Units
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T
 
-                      % Aspect Ratio
-AR = linspace(10,15,5);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 11;                     % Aspect Ratio
+AR = linspace(9,13,35);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;                % Fuselage Length
 
@@ -32,7 +32,7 @@ sweep       = 30;
 Clmax_to = 1.667;
 Clmax_land = 2.044;
 Clmax_cruise= 1;
-Cl_cruise = 0.92;
+Cl_cruise = 0.61;
 
 M =.85;                         %cruise speed
 Cruise_alt = 55000;             %cruise alititude
@@ -100,8 +100,6 @@ fprintf(' -Fuel Burn: %.1f lbs\n', BestOverallFuel);
 fprintf(' -MTOW     : %.1f lbs\n', BestOverallMTOW);
 fprintf(' -Empty Wt : %.1f lbs\n', BestOverallEmpty);
 fprintf(' -Sref     : %.1f ft^2\n', BestOverallS);
-fprintf(' CD0     : %.5f \n', BestOverallCD0);
-fprintf(' CD      : %.5f \n', BestOverallCD);
 
 fprintf('--------------- Stall ---------------\n \n');
 
