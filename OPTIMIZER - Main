@@ -1,0 +1,34 @@
+clc
+clear
+close all
+
+
+start = [10,0.26,27,1000,30000];
+
+% A * x <= b
+
+%   AR taper ,sweep,S,T
+A = [-1,0,0,0,0
+      0,-1,0,0,0
+      0,0,1,0,0
+      0,0,0,-1,0
+      0 0 0 0 -1
+      0 1 0 0 0];
+
+b = [-3,-.1,50,-300,-100,1];
+
+Aeq = [0,0,0,0,0
+       0 1 0 0 0];
+beq = [10.5,.26];
+lb = [];
+ub = [];
+
+options = optimoptions('fmincon','PlotFcn',@optimplotfval);
+
+Design = fmincon('Fuel_Optimization',start,A,b,Aeq,beq,lb,ub,'Optimization_Constraints',options);
+
+fprintf('Optimal Aspect Ratio: %.1f \n', Design(1,1));
+fprintf('Optimal taper Ratio : %.2f \n', Design(1,2));
+fprintf('Optimal sweep angle : %.1f deg\n', Design(1,3))
+fprintf('Optimal Sref        : %.1f lbf\n', Design(1,4))
+fprintf('Optimal thrust      : %.1f lbf\n', Design(1,5))
