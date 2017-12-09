@@ -467,4 +467,13 @@ hold on
 scatter(S,T,'g')
 xlabel('S')
 ylabel('T')
+
+[LoD, ~, ~] = Drag_Polars(S,AR);
+[SHT, SVT] = stabilizers(S, AR);
+
+
+fprintf('LOD      : %.1f \n', LoD(3))
+fprintf('SHT      : %.1f \n', SHT)
+fprintf('SVT      : %.1f \n\n', SVT)
+
 end 
