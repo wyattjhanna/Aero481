@@ -6,7 +6,7 @@ clc
 close all
 dt = 1;                 %weight convergence number
 Surface_Fineness = 10;    % Adjusts linspace of Surface, lower numbers compute slower.
-Plot_Graphs = 1;         %Turns plotting on and off
+Plot_Graphs = 0;         %Turns plotting on and off
 
 TS_Xmin = 500;
 TS_Xmax = 1800;
@@ -15,8 +15,8 @@ TS_Xmax = 1800;
 %Declare global variables
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T
 
-AR = [10 10];                        % Aspect Ratio
-%AR = linspace(8,12,12);        %we can loop through with different aspect ratios. 3 graphs per loop\
+%AR = 10;                        % Aspect Ratio
+AR = linspace(8,18,11);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;                % Fuselage Length
 
@@ -55,7 +55,7 @@ sweep = deg2rad(sweep);
 num = 1;
 BestOverallFuel = 999999999;
 for arinc = 1:length(AR)
-    [Fuel_weight(arinc),lift(arinc), Plane(arinc), DesignS(arinc), CD_out] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
+    [Fuel_weight(arinc),lift(arinc), Plane(arinc), DesignS(arinc), CD_out, CD_last] = TS(MTOW_Guess, AR(arinc), Sref_Guess, Clmax_to, Clmax_land,num);
     num = num+3;
     
     if Fuel_weight(arinc) < BestOverallFuel
@@ -64,10 +64,12 @@ for arinc = 1:length(AR)
         BestOverallMTOW = Plane(arinc);
         BestOverallEmpty = Plane(arinc) - Fuel_weight(arinc);
         BestOverallS = DesignS(arinc);
-        BestOverallCD0 = CD_out(3);
+        BestOverallCD0 = CD_out;
+        BestOverallCD = CD_last;
     end
     
     if length(AR) > 1
+        close all
     end
 end
 
@@ -95,10 +97,11 @@ fprintf('--------------- CONCLUSIONS ---------------\n \n');
 
 fprintf('Best Aspect Ratio: %f \n', BestOverallAR);
 fprintf(' -Fuel Burn: %.1f lbs\n', BestOverallFuel);
-fprintf(' -MTOW     : %.1f lbs\n', BestOverallMTOW)
-fprintf(' -Empty Wt : %.1f lbs\n', BestOverallEmpty)
-fprintf(' -Sref     : %.1f ft^2\n', BestOverallS)
-fprintf(' CD0     : %.5f \n', CD_out)
+fprintf(' -MTOW     : %.1f lbs\n', BestOverallMTOW);
+fprintf(' -Empty Wt : %.1f lbs\n', BestOverallEmpty);
+fprintf(' -Sref     : %.1f ft^2\n', BestOverallS);
+fprintf(' CD0     : %.5f \n', BestOverallCD0);
+fprintf(' CD      : %.5f \n', BestOverallCD);
 
 fprintf('--------------- Stall ---------------\n \n');
 
@@ -155,19 +158,19 @@ end
         %Raymber GA
 %         Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
-        Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
+        Wing = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
         * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         %torenbeek: light transport
         b = sqrt(AR*S);
-        Wing(3,:) = .00125.*W0_guess.*(b./(cos(sweep/2))).^0.75.*(1+sqrt(6.3*cos(sweep/2)./b))...
-               .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cos(sweep/2))).^0.3;
+       % Wing(3,:) = .00125.*W0_guess.*(b./(cos(sweep/2))).^0.75.*(1+sqrt(6.3*cos(sweep/2)./b))...
+             %  .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cos(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
-        Wing(4,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
-         / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
+      %  Wing(4,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+        % / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
      
-        Wing_avg = (Wing(2,:)+Wing(3,:)+Wing(4,:))/3;
+       % Wing_avg = (Wing(2,:)+Wing(3,:)+Wing(4,:))/3;
         
-        %Wing_avg = 10*S;
+        Wing_avg = Wing;
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -176,7 +179,8 @@ end
         W0_guess = W0;
         W0S0 = W0_guess/S;
     end
-%     WS = W0_guess/S;
+%
+
     end
 %% ------------------- Standard Atmosphere Function -------------------
     function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
@@ -230,7 +234,7 @@ end
 
     end
 %% --------------------- TW WS, Polar Plots, T-S ---------------------
-    function [Fuelmin, DesignLOD,Design_MTOW, DesignS, CD0] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
+    function [Fuelmin, DesignLOD,Design_MTOW, DesignS, CD0,CD_last] = TS(MTOW, AR, Sref, Clmax_to, Clmax_land,fig_num)
 %% ------------------------------ TW WS ------------------------------
         fprintf('--------------- AR %f ---------------\n \n',AR);
 
@@ -264,7 +268,7 @@ end
             for i = 1:length(Surface)
                 Swing = Surface(i);
                 [~,~,~,~,~,ClimbCoe] = Constraints(Swing,AR,rho);
-                [LOD, ~] = Drag_Polars(Swing,AR);
+                [LOD, ~,~] = Drag_Polars(Swing,AR);
                                 
                 converge = 0;
                 Thrust(i) = Tnew;
@@ -285,13 +289,13 @@ end
        fprintf('TS CLIMB      - COMPLETE \n');
         
         %Cruise
-        p = Standard_Atmosphere_IMPERIAL(66); % Takeoff air density (slugs)
+        p = Standard_Atmosphere_IMPERIAL(55000); % Takeoff air density (slugs)
         Cr = ones(1,length(Surface));
         for i = 1:length(Surface)
             Tnew = 17745*2;
             Swing = Surface(i);
             [~,~,~,TWWS,~,~] = Constraints(Swing,AR,p);
-            [LOD, ~] = Drag_Polars(Swing,AR);
+            [LOD, ~,~] = Drag_Polars(Swing,AR);
                 
             converge = 0;
             Cr(i) = Tnew;
@@ -324,7 +328,7 @@ end
             Tnew = 17745*2;
             Swing = Surface(i);
             [~,~,~,TWWS,~,~] = Constraints(Swing,AR,p);
-            [LOD, ~] = Drag_Polars(Swing,AR);
+            [LOD, ~,~] = Drag_Polars(Swing,AR);
   
             converge = 0;
             To(i) = Tnew;
@@ -361,7 +365,7 @@ end
             converge = 0;
             Sur(i) = Snew;
             while converge == 0
-                [LOD,~] = Drag_Polars(Sur(i),AR);
+                [LOD,~,~] = Drag_Polars(Sur(i),AR);
                 [W0, ~] = WeightEstimate(Sur(i),T,AR, taper, sweep, M_ff,LOD(6));
                 [~,~,~,~,ws,~] = Constraints(Sur(i),AR,p);
                 Snew = W0./ws; 
@@ -440,7 +444,7 @@ end
          for ii = 1:length(Surface)
      
              S_loop = Surface(ii);
-             [LOD, ~] = Drag_Polars(S_loop,AR);
+             [LOD, ~,~] = Drag_Polars(S_loop,AR);
              T_loop = round(C(3,ii));
              [W0_loop, ~] = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff,LOD(3));                    
              M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD(3)))))^-1;
@@ -453,8 +457,9 @@ end
                  Design_MTOW = W0_loop;
                  DesignLOD = LOD(3);
                  DesignS = S_loop;
-                 [LOD, CD0_out] = Drag_Polars(S_loop,AR);
+                 [LOD, CD0_out,CD] = Drag_Polars(S_loop,AR);
                  CD0 = CD0_out;
+                 CD_last = CD;
                  Fuelminii = ii;
              end
          end
@@ -484,7 +489,7 @@ end
 
 %% Constraint Line Function
     function [c,index,Climb,TWWS,ws,ClimbCoe] = Constraints(Sref,AR,rho)
-        [L0D, CD0] = Drag_Polars(Sref,AR);
+        [L0D, CD0,~] = Drag_Polars(Sref,AR);
         % Math Zone
     
         vector = ones(1,1001); % Makes somthing a 1001 long vector.
@@ -495,13 +500,13 @@ end
         %e depends on our different configurations during flight
         Ne = 1.5*2.5;
         f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
-        eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
-       % eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+       % eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
        
        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
        %      1              2            3       4        5            6       <- Climb #
         Const = pi*AR.*e;
-        CL = [Clmax_to, Clmax_to, Cl_cruise, Cl_cruise, Clmax_land, Clmax_land];
+        CL = [Clmax_to, Clmax_to, Cl_cruise, Cl_cruise, Clmax_land, Clmax_land*.85];
         %initialize
         %TW = (0:.5/1000:.5);
         WS = (0:350/1000:350);
@@ -520,9 +525,8 @@ end
         % Takeoff
         TOP = Sland/37.5;
         Takeoff = WS./((rho./p_sl).*Clmax_to.*TOP);
-        
         % CLimb
-        Climb = ks.^2 ./ (CL).*CD0'+CL./(ks.^2.*Const)+G;
+        Climb =1./(CL).*CD0'+CL./(Const)+G;
         Climb = Climb .* ones(1001,1);
        
         Cor(1) =(1/.8)*(2);
@@ -557,7 +561,7 @@ end
         ClimbCoe = [Climb(1,1), Climb(2,1), Climb(3,1), Climb(4,1), Climb(5,1), Climb(6,1), Ceiling(1)];
     end
 %% LOD Function
-    function [LoD, CD0] = Drag_Polars(Sref,AR) 
+    function [LoD, CD0, CD] = Drag_Polars(Sref,AR) 
         [SHT, SVT] = stabilizers(Sref, AR);
         
         c_root = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
@@ -680,7 +684,7 @@ end
 
         % Leakages and Proturbances Drag
         % 2 - 5 % of parasite drag
-        CD_LP   = CD_para*0.035;
+        CD_LP   = CD_para*1.035;
 
         CD0     = [CD_para(1) + CD_landgear + CD_flaps + CD_LP(1);
             CD_para(1) + CD_flaps + CD_LP(1);
@@ -704,8 +708,9 @@ end
         
         Ne = 1.5*2.5;
         f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
-        eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
-         %eclean = 1.78*(1-0.045*AR^0.68)-0.64;
+        %Howe Equation for efficiency 
+        %eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
         
          e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         
@@ -719,13 +724,6 @@ end
               CD0(3)   + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
               CD0(4)   + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
               CD0(5)   + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
-   
-%         if Sref > 1200
-%             clc
-%             eclean
-%             pause(10000000)
-%         else 
-%         end
           
           
          
@@ -737,6 +735,9 @@ end
     CD0(5) = CD0(4);
     CD0(6) = CD0(5);
     
+    index1 = find(max(CL(3,:)./(CD(3,:))) == CL(3,:)./CD(3,:))
+    
+    [val,indx] =  max(CL(3,:)./CD(3,:))
     
         LoD(1) = max(CL(1,:)./CD(1,:));
         LoD(2) = max(CL(2,:)./CD(2,:));
