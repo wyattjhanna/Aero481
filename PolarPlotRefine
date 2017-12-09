@@ -1,78 +1,95 @@
-clc
-clear
-close all
+%% LOD Function
+    function [] = PolarPlot(Sref,AR) 
+    % PolarPlot(1140, 10.5)
+        Fl          = 91.914;           % Fuselage Length
+        S_Fuselage  = 2690;             % From CAD Model
+        t_c_root    = .11;              % Thickness to Chord Ratio at Root
+        taper       = .26;
+        sweep       = deg2rad(30);
+        %Cruise Conditions
+        Clmax_to    = 1.667;
+        Clmax_land  = 2.044;
+        Clmax_cruise= 1;
+        Cl_cruise   = 0.61;
+        Clmin_cruise= -0.2;
+        M           =.85;               % cruise speed
+        V_cruise    = M * sqrt(1.4*1716*389.97);
+        cw = 2*Sref/(sqrt(Sref*AR)*(1+taper));
+        bw = sqrt(Sref*AR);
 
-AR = 8.7777777;                        % Aspect Ratio
-Sref = 1030;
-
-
-S_Fuselage  = 2690;         %From CAD Model
-t_c_root    = .11;          % Thickness to Chord Ratio at Root
-S_csw       = 283;          % Control Surface Area in ft^2
-
-taper       = .26;
-sweep       = 27;
-c_root = 2*Sref/(sqrt(Sref*AR)*(1+taper));
-
-Clmax_to = 1.8;
-Clmax_land = 2.1;
-Clmax_cruise= 0.8;
-Cl_cruise = 0.6;
-
-M =.85;                         %cruise speed
-Cruise_alt = 55000;             %cruise alititude
-Range = 5200;                   %[nmi]
-
-[p, ~, T] = Standard_Atmosphere_IMPERIAL(Cruise_alt);
-V_cruise = M * sqrt(1.4*1716*T); % ft/s
-
-eclean = 1.78*(1-0.045*AR^0.68)-0.64;
-e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
-% LOD Function        
+        cht = .66;
+        cvt = 0.045;
+%45% for Vertical tail
+%48% for Horizontal tail
+%looking at convential business jets, it looks similar to this
+        LHT = 0.48*Fl;
+        LVT = 0.45*Fl;
+        SVT = bw*Sref*cvt/LVT;
+        SHT = cw*Sref*cht/LHT;
+        
+        c_root  = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
+        MAC     = (2/3)*c_root*(1+taper + taper^2)/(1+taper);
+        VAR     = 0.9;
+        HAR     = 4.0;
+        HTPR    = 0.7;
+        VTPR    = 0.5;
+        v_span  = sqrt(SVT*VAR);
+        h_span  = sqrt(SHT*HAR);
+        v_croot = 2*SVT/(v_span*(1+VTPR));
+        h_croot = 2*SHT/(h_span*(1+HTPR));
+        V_MAC   = v_croot*(2/3)*(1+VTPR+VTPR^2)/(1+VTPR);
+        H_MAC   = h_croot*(2/3)*(1+HTPR+HTPR^2)/(1+HTPR);
+        
+        % Raymr for a business jet         
+        % Variables
+        % Component order
+        % Wing, VTail, HTail, Fuselage, Nacelle
         % length
-        l = [10.17, 12.649, 9.523, 91.914, 18.333];   % Updated 11/15/2017
+        l       = [MAC, V_MAC, H_MAC, Fl, 14.16];
         % Thickness
-        t = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];           % Updated 11/15/2017
+        t       = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];
         % Chord wise location of max airfoil thickness
-        xc = [5.518, 4.769, 3.34];                    % Updated 11/15/2017
+        xc      = [.11*MAC, .12*V_MAC, .12*H_MAC];
         % Wetted Areas
-        St = 184.21; % Nacelle Wetted Area
+        St      = 184.21; % Nacelle Wetted Area
         % Changing with Sref input
-        
-        [SHT, SVT] = stabilizers(Sref, AR);
-        
-        Swetc = [2*Sref, SVT, SHT, S_Fuselage-2*St, 2*St];
+        Swetc   = [2*Sref, 2*SVT, 2*SHT, S_Fuselage-2*St, 2*St];
         % Component Sweep
-        Lm = [sweep, 52.80, 40.54];
-        % Takeoff, Landing Velocity (ft/s)
-        V = [220, 293];                        % Updated 11/15/2017
-        % Takeoff, Landing Speed of sound
-        a = 1116.13;                                  % Updated 11/15/2017
+        Lm      = [sweep, .92153, .70685];
+        % Temperature Rankine
+        Temp    = 518.477;
+        % Speed of Sound
+        a       = sqrt(1.4*1716*Temp);
+        % Takeoff/ Landing Mach Number
+        Mto     = 0.12;
+        Mland   = 0.14;
+        % Takeoff/ Landing Velocity
+        V       = [Mto*a, Mland*a];                                      
         % Flap cord percent
-        cfc = 0.18;                                   % Updated 11/15/2017
+        cfc     = 0.17;
         % Flap deflection (deg)
-        df = 40;                                      % Updated 11/15/2017
+        df      = 20;
         % Flapped area percent
-        Af = 0.4;
+        Af      = .75;
         
+        % CD0 Drag = CDparasite + CDmisc + CDLP
         % Component Reynolds number (Transonic)
-        rho = 23.77*10^-4;
-        rho2 = 2.7*10^-4;
-        mu = 3.737*10^-7;
-        ReTo = rho.*V(1).*l./mu; % Takeoff Reynolds
-        ReCr = V_cruise*rho2/mu.*l;
-        ReLa = rho.*V(2).*l./mu; % Landing Reynolds
-        
-        
-        
+        rho     = 23.77*10^-4;
+        rho2    = 2.7*10^-4;
+        mu      = 3.737*10^-7;
+        mu_cr   = 2.969e-7;
+        ReTo    = rho.*V(1).*l./mu; % Takeoff Reynolds
+        ReCr    = V_cruise*rho2/mu_cr.*l;
+        ReLa    = rho.*V(2).*l./mu; % Landing Reynolds
+
         % Parasite Drag
         % Laminar
         Cf_laminarTo   = 1.328./sqrt(ReTo);
         Cf_laminarCr   = 1.328./sqrt(ReCr);
         Cf_laminarLa   = 1.328./sqrt(ReLa);
         % Turbulent
-        Mto = 0.2;
-        Mla = 0.21;
+        Mto = V(1)/a;
+        Mla = V(2)/a;
         Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
         Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*M.^2).^0.65);
         Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
@@ -83,10 +100,10 @@ e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
 
         % Component Form Factors
         % Wing, VTail, HTail
-        tc     = t(1:3)/l(1:3);
-        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cosd(Lm).^0.28);
-        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cosd(Lm).^0.28);
-        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cosd(Lm).^0.28);
+        tc       = t(1:3)/l(1:3);
+        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cos(Lm).^0.28);
+        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cos(Lm).^0.28);
+        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cos(Lm).^0.28);
         % length/thickness for fuselage and nacelle
         f_fuse   = l(4)/t(4);
         f_nace   = l(5)/t(5);
@@ -103,121 +120,55 @@ e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         % [Ranges based on fillet(1.1-1.4),
         Qc      = [1.1, 1.06, 1.06, 1, 1.3];
 
-        Ncomp     = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swetc;Swetc;Swetc];
+        Ncomp   = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swetc;Swetc;Swetc];
         CD_para = sum(Ncomp,2)/Sref; 
         % Miscellaneous Drag (Landing Gear, Flaps)
         % Landing Gear;
-        DqA = [0.25 0.15 0.18 0.13 0.05 0.3 1.4 1];
+        DqA     = [0.25 0.15 0.18 0.13 0.05 0.3 1.4 1];
         % Landing gear frontal areas
-        LA = [3 3 2 2 2 2 5 2];
-        Dqc = DqA.*LA;
-        CD_landgear = 2/Sref*(sum(Dqc));
+        LA      = [2.67 2.67 0 0 0 0 0 0];
+        Dqc     = DqA.*LA;
+        CD_landgear = 2*1/Sref*(sum(Dqc));
         % Flaps
         CD_flaps = 1.7*(cfc)^1.38*(Af)*(sind(df))^2;
-        CD_flapsto = CD_flaps.*.5;
 
         % Leakages and Proturbances Drag
         % 2 - 5 % of parasite drag
-        CD_LP   = CD_para*1.035;
+        CD_LP   = CD_para*0.035;
 
-        CD0     = [CD_para(1) + CD_landgear + CD_flapsto + CD_LP(1);
-            CD_para(1) + CD_flapsto + CD_LP(1);
+        CD0     = [CD_para(1) + CD_landgear + 0.6*CD_flaps + CD_LP(1);
+            CD_para(1) + 0.6*CD_flaps + CD_LP(1);
             CD_para(2) + CD_LP(2);
             CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
             CD_para(3) + CD_flaps + CD_LP(3)];
         
+        CL = [linspace(-.49, Clmax_to, 100);
+            linspace(-.49, Clmax_to, 100);
+            linspace(Clmin_cruise, Clmax_cruise, 100);
+            linspace(-.42, Clmax_land, 100);
+            linspace(-.42, Clmax_land, 100)];
         
-        CL = [linspace(-0.6034, Clmax_to, 100);
-            linspace(-0.6034, Clmax_to, 100);
-            linspace(-Clmax_cruise, Clmax_cruise, 100);
-            linspace(-0.3886, Clmax_land, 100);
-            linspace(-0.3886, Clmax_land, 100)];
-        
-        % CDtrim  
-        
-        CLmindrag = 0.5;
-        CLmins = CLmindrag*[1;1;1;1;1];
-        CLmin = CLmins.*ones(size(CL));  
-        
-        MDD = (.95/cosd(sweep)) - (t_c_root/(cosd(sweep))^2) - ( (CL-CLmin) ./ (10*(cosd(sweep))^3 ));
-        Mcrit = MDD - (.1/80)^(1/3);
-        CDwave = 20*(M-Mcrit).^4;
-                
-        CD = [CD0(1)  + CDwave(1,:) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
-              CD0(2)  + CDwave(2,:) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
-              CD0(3)  + CDwave(3,:) + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
-              CD0(4)  + CDwave(4,:) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
-              CD0(5)  + CDwave(5,:) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
-   
-figure(1)
-plot(CD(1,:),CL(1,:),CD(2,:),CL(2,:),CD(3,:),CL(3,:),CD(4,:),CL(4,:),CD(5,:),CL(5,:))
-xlabel('C_D','FontSize',20)
-ylabel('C_L','FontSize',20)
-title('Drag Polar','FontSize',24)
-legend('TO Flaps Gear','TO Gear','Cruise','La Flaps Gear','La Gear')
+        % CDwave 
+        CLmindrag   = 0.2;                                    % from Xfoil
+        CLmins      = CLmindrag*[1;1;1;1;1];
+        CLmin       = CLmins.*ones(size(CL));  
 
-function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
+        eclean      = 1.78*(1-0.045*AR^0.68)-0.64;
+        e           =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
         
-        altitude = round(altitude/3.28084); % Converting ft to m
+        MDD         = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (Cl_cruise) ./ (10*(cos(sweep))^3 ));
+        Mcrit       = MDD - (.1/80)^(1/3);
+        CDwave      = 20*(M-Mcrit).^4;      
         
-        %heightm = [0:1:32000];
-        tempK = zeros(1,32001);
-        %tempC = zeros(1,32001);
-        pressureNM2 = zeros(1,32001);
-        densityKGM3 = zeros(1,32001);
-        pasttemp = 288.15;
-        press0 = 101325;
-        
-        for H = 1:11000
-            nexttemp = pasttemp + (-6.5)/1000;
-            tempK(H) = pasttemp;
-            pasttemp = nexttemp;
-        end
-        
-        for H = 11000:20000
-            tempK(H) = pasttemp;
-        end
-        
-        for H = 20000:32001
-            nexttemp = pasttemp + (1)/1000;
-            tempK(H) = pasttemp;
-            pasttemp = nexttemp;
-        end
-        
-        %tempC = tempK - 273.15;
-               
-        for H = 1:11000
-            pressureNM2(H) = press0 * (288.15 /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * -0.0065));
-        end
-        
-        for H = 11000:20000
-            pressureNM2(H) = pressureNM2(11000) * exp(-9.81 * 0.0289644 * (H - 11000)/ (8.31432 * tempK(11000)));
-        end
-        
-        for H = 20000:32001
-            pressureNM2(H) = pressureNM2(20000) * (tempK(20000) /(tempK(H)))^((9.81 * 0.0289644)/(8.31432 * 0.001));
-        end
-        for H = 1:32000
-            densityKGM3(H) = (0.0289644 * pressureNM2(H))/(8.31432 * tempK(H));
-        end
-        
-        Density     = densityKGM3(altitude)*0.0019403203; % density in slugs/ft^3
-        Pressure    = pressureNM2(altitude)* 0.000145038; % pressure in psi
-        Temperature = tempK(altitude)* 1.8; % temperature in R
-
-end
-    
-function [SHT, SVT] = stabilizers(SW, AR)
-Fl = 91.914;
-taper = 0.26;
-cw = 2*SW/(sqrt(SW*AR)*(1+taper));
-bw = sqrt(SW*AR);
-
-cht = .9;
-cvt = 0.08;
-
-LHT = 0.48*Fl;
-LVT = 0.45*Fl;
-SVT = bw*SW*cvt/LVT;
-SHT = cw*SW*cht/LHT;
-end
+        CD = [CD0(1) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
+              CD0(2) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+              CD0(3) + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+              CD0(4) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+              CD0(5) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+          
+        plot(CD(1,:),CL(1,:),'r',CD(2,:),CL(2,:),'r--',CD(3,:),CL(3,:),'k',CD(4,:),CL(4,:),'b',CD(5,:), CL(5,:),'b--')
+        title('Drag Polar','FontSize',16)
+        xlabel('CD','FontSize',14)
+        ylabel('CL','FontSize',14)
+        legend('Takeoff: Gear + Flaps','Takeoff: Flaps','Cruise','Landing: Gear + Flaps','Landing: Flaps')
+    end
