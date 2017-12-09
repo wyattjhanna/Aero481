@@ -1,183 +1,195 @@
-%% LOD Function
-    function [] = PolarPlot(Sref,AR) 
-    clc
-    close all
-    % PolarPlot(1140, 10.5)
-        Fl          = 91.914;           % Fuselage Length
-        S_Fuselage  = 2690;             % From CAD Model
-        t_c_root    = .11;              % Thickness to Chord Ratio at Root
-        taper       = .26;
-        sweep       = deg2rad(30);
-        %Cruise Conditions
-        Clmax_to    = 1.667;
-        Clmax_land  = 2.044;
-        Clmax_cruise= 1;
-        Cl_cruise   = 0.61;
-        Clmin_cruise= -0.2;
-        M           =.85;               % cruise speed
-        V_cruise    = M * sqrt(1.4*1716*389.97);
-        cw = 2*Sref/(sqrt(Sref*AR)*(1+taper));
-        bw = sqrt(Sref*AR);
+clc
+close all
+clear
 
-        cht = .66;
-        cvt = 0.045;
+AR          = 9.46;             % Aspect Ratio
+Sref        = 1032.2;
+Fl          = 91.914;           % Fuselage Length
+Payload     = 2600;
+S_Fuselage  = 2690;             % From CAD Model
+t_c_root    = .12;              % Thickness to Chord Ratio at Root
+taper       = .26;
+sweep       = deg2rad(35.1);
+%Flight Conditions
+Clmax_to    = 1.667;
+Clmin_to    = -0.49;
+Clmax_land  = 2.044;
+Clmin_land  = -0.42;
+Clmax_cruise= 1;
+Cl_cruise   = 0.61;
+Clmin_cruise= -0.2;
+M           = .85;               % cruise speed
+V_cruise    = M * sqrt(1.4*1716*389.97);  
+Cruise_alt  = 55000;            % cruise alititude
+Sland       = 4956;             % Landing runway length
+Range       = 5200;             % [nmi]
+sfc         = 0.6;
+
+cw = 2*Sref/(sqrt(Sref*AR)*(1+taper));
+bw = sqrt(Sref*AR);
+
+cht = .66;
+cvt = 0.045;
 %45% for Vertical tail
 %48% for Horizontal tail
 %looking at convential business jets, it looks similar to this
-        LHT = 0.48*Fl;
-        LVT = 0.45*Fl;
-        SVT = bw*Sref*cvt/LVT;
-        SHT = cw*Sref*cht/LHT;
+LHT = 0.48*Fl;
+LVT = 0.45*Fl;
+SVT = bw*Sref*cvt/LVT;
+SHT = cw*Sref*cht/LHT;
         
-        c_root  = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
-        MAC     = (2/3)*c_root*(1+taper + taper^2)/(1+taper);
-        VAR     = 0.9;
-        HAR     = 4.0;
-        HTPR    = 0.7;
-        VTPR    = 0.5;
-        v_span  = sqrt(SVT*VAR);
-        h_span  = sqrt(SHT*HAR);
-        v_croot = 2*SVT/(v_span*(1+VTPR));
-        h_croot = 2*SHT/(h_span*(1+HTPR));
-        V_MAC   = v_croot*(2/3)*(1+VTPR+VTPR^2)/(1+VTPR);
-        H_MAC   = h_croot*(2/3)*(1+HTPR+HTPR^2)/(1+HTPR);
-        
-        % Raymr for a business jet         
-        % Variables
-        % Component order
-        % Wing, VTail, HTail, Fuselage, Nacelle
-        % length
-        l       = [MAC, V_MAC, H_MAC, Fl, 14.16];
-        % Thickness
-        t       = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];
-        % Chord wise location of max airfoil thickness
-        xc      = [.11*MAC, .12*V_MAC, .12*H_MAC];
-        % Wetted Areas
-        St      = 184.21; % Nacelle Wetted Area
-        % Changing with Sref input
-        Swetc   = [2*Sref, 2*SVT, 2*SHT, S_Fuselage-2*St, 2*St];
-        % Component Sweep
-        Lm      = [sweep, .92153, .70685];
-        % Temperature Rankine
-        Temp    = 518.477;
-        % Speed of Sound
-        a       = sqrt(1.4*1716*Temp);
-        % Takeoff/ Landing Mach Number
-        Mto     = 0.12;
-        Mland   = 0.14;
-        % Takeoff/ Landing Velocity
-        V       = [Mto*a, Mland*a];                                      
-        % Flap cord percent
-        cfc     = 0.17;
-        % Flap deflection (deg)
-        df      = 20;
-        % Flapped area percent
-        Af      = .75;
-        
-        % CD0 Drag = CDparasite + CDmisc + CDLP
-        % Component Reynolds number (Transonic)
-        rho     = 23.77*10^-4;
-        rho2    = 2.7*10^-4;
-        mu      = 3.737*10^-7;
-        mu_cr   = 2.969e-7;
-        ReTo    = rho.*V(1).*l./mu; % Takeoff Reynolds
-        ReCr    = V_cruise*rho2/mu_cr.*l;
-        ReLa    = rho.*V(2).*l./mu; % Landing Reynolds
+c_root  = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
+MAC     = (2/3)*c_root*(1+taper + taper^2)/(1+taper);
+VAR     = 0.9;
+HAR     = 4.0;
+HTPR    = 0.7;
+VTPR    = 0.5;
+v_span  = sqrt(SVT*VAR);
+h_span  = sqrt(SHT*HAR);
+v_croot = 2*SVT/(v_span*(1+VTPR));
+h_croot = 2*SHT/(h_span*(1+HTPR));
+V_MAC   = v_croot*(2/3)*(1+VTPR+VTPR^2)/(1+VTPR);
+H_MAC   = h_croot*(2/3)*(1+HTPR+HTPR^2)/(1+HTPR);
 
-        % Parasite Drag
-        % Laminar
-        Cf_laminarTo   = 1.328./sqrt(ReTo);
-        Cf_laminarCr   = 1.328./sqrt(ReCr);
-        Cf_laminarLa   = 1.328./sqrt(ReLa);
-        % Turbulent
-        Mto = V(1)/a;
-        Mla = V(2)/a;
-        Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
-        Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*M.^2).^0.65);
-        Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
-        % Average of Laminar and turbulent
-        Cfc_avg        = [(Cf_laminarTo*0 + Cf_turbulentTo*1);
-                        (Cf_laminarCr*0 + Cf_turbulentCr*1);
-                        (Cf_laminarLa*0 + Cf_turbulentLa*1)];
+% Raymr for a business jet         
+% Variables
+% Component order
+% Wing, VTail, HTail, Fuselage, Nacelle
+% length
+l       = [MAC, V_MAC, H_MAC, Fl, 14.16];
+% Thickness
+t       = [t_c_root*c_root, 2.043, 1.33, 9.59, 6.2125];
+% Chord wise location of max airfoil thickness
+xc      = [.11*MAC, .12*V_MAC, .12*H_MAC];
+% Wetted Areas
+St      = 184.21; % Nacelle Wetted Area
+% Changing with Sref input
+Swetc   = [2*Sref, 2*SVT, 2*SHT, S_Fuselage-2*St, 2*St];
+% Component Sweep
+Lm      = [sweep, sweep, sweep];
+% Temperature Rankine
+Temp    = 518.477;
+% Speed of Sound
+a       = sqrt(1.4*1716*Temp);
+% Takeoff/ Landing Mach Number
+Mto     = 0.12;
+Mland   = 0.14;
+% Takeoff/ Landing Velocity
+V       = [Mto*a, Mland*a];                                      
+% Flap cord percent
+cfc     = 0.17;
+% Flap deflection (deg)
+df      = 20;
+% Flapped area percent
+Af      = .75;
 
-        % Component Form Factors
-        % Wing, VTail, HTail
-        tc       = t(1:3)/l(1:3);
-        FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cos(Lm).^0.28);
-        FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cos(Lm).^0.28);
-        FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cos(Lm).^0.28);
-        % length/thickness for fuselage and nacelle
-        f_fuse   = l(4)/t(4);
-        f_nace   = l(5)/t(5);
-        % Fuselage
-        FFfuse   = (1 + 60/f_fuse^3 + f_fuse/400);
-        % Nacelle
-        FFnace   = 1 + 0.35/f_nace;
+% CD0 Drag = CDparasite + CDmisc + CDLP
+% Component Reynolds number (Transonic)
+rho     = 23.77*10^-4;
+rho2    = 2.7*10^-4;
+mu      = 3.737*10^-7;
+mu_cr   = 2.969e-7;
+ReTo    = rho.*V(1).*l./mu; % Takeoff Reynolds
+ReCr    = V_cruise*rho2/mu_cr.*l;
+ReLa    = rho.*V(2).*l./mu; % Landing Reynolds
 
-        FFc      = [FFcompTo, FFfuse, FFnace;
-                FFcompCr, FFfuse, FFnace;
-                FFcompLa, FFfuse, FFnace];
+% Parasite Drag
+% Laminar
+Cf_laminarTo   = 1.328./sqrt(ReTo);
+Cf_laminarCr   = 1.328./sqrt(ReCr);
+Cf_laminarLa   = 1.328./sqrt(ReLa);
+% Turbulent
+Mto = V(1)/a;
+Mla = V(2)/a;
+Cf_turbulentTo = 0.455./((log10(ReTo)).^2.58.*(1+0.144.*Mto.^2).^0.65);
+Cf_turbulentCr = 0.455./((log10(ReCr)).^2.58.*(1+0.144.*M.^2).^0.65);
+Cf_turbulentLa = 0.455./((log10(ReLa)).^2.58.*(1+0.144.*Mla.^2).^0.65);
+% Average of Laminar and turbulent
+Cfc_avg        = [(Cf_laminarTo*0 + Cf_turbulentTo*1);
+                (Cf_laminarCr*0 + Cf_turbulentCr*1);
+                (Cf_laminarLa*0 + Cf_turbulentLa*1)];
 
-        % Interference Factor
-        % [Ranges based on fillet(1.1-1.4),
-        Qc      = [1.1, 1.06, 1.06, 1, 1.3];
+% Component Form Factors
+% Wing, VTail, HTail
+tc       = t(1:3)/l(1:3);
+FFcompTo = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mto^0.18*cos(Lm).^0.28);
+FFcompCr = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*M^0.18*cos(Lm).^0.28);
+FFcompLa = (1 + 0.6./xc.*(tc) + 100.*(tc).^4).*(1.34*Mla^0.18*cos(Lm).^0.28);
+% length/thickness for fuselage and nacelle
+f_fuse   = l(4)/t(4);
+f_nace   = l(5)/t(5);
+% Fuselage
+FFfuse   = (1 + 60/f_fuse^3 + f_fuse/400);
+% Nacelle
+FFnace   = 1 + 0.35/f_nace;
 
-        Ncomp   = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swetc;Swetc;Swetc];
-        CD_para = sum(Ncomp,2)/Sref; 
-        % Miscellaneous Drag (Landing Gear, Flaps)
-        % Landing Gear;
-        DqA     = [0.25 0.15 0.18 0.13 0.05 0.3 1.4 1];
-        % Landing gear frontal areas
-        LA      = [2.67 2.67 0 0 0 0 0 0];
-        Dqc     = DqA.*LA;
-        CD_landgear = 2*1/Sref*(sum(Dqc));
-        % Flaps
-        CD_flaps = 1.7*(cfc)^1.38*(Af)*(sind(df))^2;
+FFc      = [FFcompTo, FFfuse, FFnace;
+        FFcompCr, FFfuse, FFnace;
+        FFcompLa, FFfuse, FFnace];
 
-        % Leakages and Proturbances Drag
-        % 2 - 5 % of parasite drag
-        CD_LP   = CD_para*0.035;
+% Interference Factor
+% [Ranges based on fillet(1.1-1.4),
+Qc      = [1.1, 1.06, 1.06, 1, 1.3];
 
-        CD0     = [CD_para(1) + CD_landgear + 0.6*CD_flaps + CD_LP(1);
-            CD_para(1) + 0.6*CD_flaps + CD_LP(1);
-            CD_para(2) + CD_LP(2);
-            CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
-            CD_para(3) + CD_flaps + CD_LP(3)];
-        
-        CL = [linspace(-.49, Clmax_to, 100);
-            linspace(-.49, Clmax_to, 100);
-            linspace(Clmin_cruise, Clmax_cruise, 100);
-            linspace(-.42, Clmax_land, 100);
-            linspace(-.42, Clmax_land, 100)];
-        
-        % CDwave 
-        CLmindrag   = 0.2;                                    % from Xfoil
-        CLmins      = CLmindrag*[1;1;1;1;1];
-        CLmin       = CLmins.*ones(size(CL));  
+Ncomp   = Cfc_avg.*FFc.*[Qc;Qc;Qc].*[Swetc;Swetc;Swetc];
+CD_para = sum(Ncomp,2)/Sref; 
+% Miscellaneous Drag (Landing Gear, Flaps)
+% Landing Gear;
+DqA     = [0.25 0.15 0.18 0.13 0.05 0.3 1.4 1];
+% Landing gear frontal areas
+LA      = [2.67 2.67 0 0 0 0 0 0];
+Dqc     = DqA.*LA;
+CD_landgear = 2*1/Sref*(sum(Dqc));
+% Flaps
+CD_flaps = 1.7*(cfc)^1.38*(Af)*(sind(df))^2;
 
-        eclean      = 1.78*(1-0.045*AR^0.68)-0.64;
-        e           =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
-        
-        MDD         = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (Cl_cruise) ./ (10*(cos(sweep))^3 ));
-        Mcrit       = MDD - (.1/80)^(1/3);
-        CDwave      = 20*(M-Mcrit).^4;      
-        
-        CD = [CD0(1) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR().*e(1));
-              CD0(2) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
-              CD0(3) + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
-              CD0(4) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
-              CD0(5) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
-        [LoD, idx] = max(CL(3,:)./(CD(3,:)));
-        
-        LDlinex = linspace(0,CD(3,idx),100);
-        LDliney = LDlinex.*LoD;
-        plot(CD(1,:),CL(1,:),'r',CD(2,:),CL(2,:),'r--',CD(3,:),CL(3,:),'k',CD(4,:),CL(4,:),'b',CD(5,:), CL(5,:),'b--')
-        hold on
-        plot(LDlinex,LDliney,'k--')
-        scatter(CD(3,idx),CL(3,idx),20,'r','filled')
-        title('Drag Polar','FontSize',16)
-        axis([0 0.2 -0.5 2.5])
-        xlabel('CD','FontSize',14)
-        ylabel('CL','FontSize',14)
-        legend('Takeoff: Gear + Flaps','Takeoff: Flaps','Cruise','Landing: Gear + Flaps','Landing: Flaps')
-    end
+% Leakages and Proturbances Drag
+% 2 - 5 % of parasite drag
+CD_LP   = CD_para*0.035;
+
+CD0     = [CD_para(1) + CD_landgear + 0.6*CD_flaps + CD_LP(1);
+    CD_para(1) + 0.6*CD_flaps + CD_LP(1);
+    CD_para(2) + CD_LP(2);
+    CD_para(3) + CD_landgear + CD_flaps + CD_LP(3);
+    CD_para(3) + CD_flaps + CD_LP(3)];
+
+
+CL = [linspace(Clmin_to, Clmax_to, 100);
+    linspace(Clmin_to, Clmax_to, 100);
+    linspace(Clmin_cruise, Clmax_cruise, 100);
+    linspace(Clmin_land, Clmax_land, 100);
+    linspace(Clmin_land, Clmax_land, 100)];
+
+% CDwave 
+CLmindrag   = 0.2;                                    % from Xfoil
+CLmins      = CLmindrag*[1;1;1;1;1];
+CLmin       = CLmins.*ones(size(CL));  
+
+eclean = 4.61*(1 - 0.045 * AR^0.68)*(cos(sweep))^.15 - 2.7;
+e           =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
+
+MDD         = (.95/cos(sweep)) - (t_c_root/(cos(sweep))^2) - ( (Cl_cruise) ./ (10*(cos(sweep))^3 ));
+Mcrit       = MDD - (.1/80)^(1/3);
+CDwave      = 20*(M-Mcrit).^4;      
+
+CD = [CD0(1) + (CL(1,:)-CLmin(1,:)).^2./(pi.*AR.*e(1));
+      CD0(2) + (CL(2,:)-CLmin(2,:)).^2./(pi.*AR.*e(2));
+      CD0(3) + CDwave + (CL(3,:)-CLmin(3,:)).^2./(pi.*AR.*e(3));
+      CD0(4) + (CL(4,:)-CLmin(4,:)).^2./(pi.*AR.*e(5));
+      CD0(5) + (CL(5,:)-CLmin(5,:)).^2./(pi.*AR.*e(6))];
+
+[LoD, idx] = max(CL(3,:)./(CD(3,:)));
+LDlinex = linspace(0,CD(3,idx),100);
+LDliney = LDlinex.*LoD;  
+
+plot(CD(1,:),CL(1,:),'r',CD(2,:),CL(2,:),'r--',CD(3,:),CL(3,:),'k',CD(4,:),CL(4,:),'b',CD(5,:),CL(5,:),'b--')
+CL(3,idx)
+hold on
+plot(LDlinex,LDliney,'k--')
+scatter(CD(3,idx),CL(3,idx),20,'r','filled')
+text(CD(3,idx)-0.03,CL(3,idx),'L/D = 23.4','FontSize',14)
+title('Drag Polar','FontSize',16)
+axis([0 0.2 -0.5 2.5])
+xlabel('CD','FontSize',14)
+ylabel('CL','FontSize',14)
+legend('Takeoff: Gear + Flaps','Takeoff: Flaps','Cruise','Landing: Gear + Flaps','Landing: Flaps')
