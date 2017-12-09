@@ -16,7 +16,7 @@ TS_Xmax = 1800;
 global M Cruise_alt Sland taper sweep Range V_cruise S_Fuselage t_c_root e c_root Fl p_sl p_cruise T
 
                       % Aspect Ratio
-AR = linspace(12,15,4);        %we can loop through with different aspect ratios. 3 graphs per loop\
+AR = linspace(10,15,5);        %we can loop through with different aspect ratios. 3 graphs per loop\
 
 Fl = 91.914;                % Fuselage Length
 
@@ -156,21 +156,21 @@ end
         AllElse = 0.1*W0_guess;          
         
         %Raymber GA
-%         Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
+         Wing(1,:) = 0.036*(S^0.758)*(Fuel^.0035).*(AR./(cos(sweep))^2).^0.6*(q^0.006)*(taper^.04)*(100*t_c_root/cos(sweep))^(-.3)*(N_z*W0_guess)^0.49;
         %raymer transport
-        Wing = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
-        * (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
+        %Wing(2,:) = 0.0051*(W0_guess*N_z)^0.557 * S^0.649 .*AR .^ .5 * (t_c_root)^ -0.4...
+        %* (1+taper)^0.1 * cos(sweep)^-1 * S_csw^0.1;
         %torenbeek: light transport
         b = sqrt(AR*S);
        % Wing(3,:) = .00125.*W0_guess.*(b./(cos(sweep/2))).^0.75.*(1+sqrt(6.3*cos(sweep/2)./b))...
              %  .*N_z.^0.55.*(b.*S./(c_root*W0_guess*cos(sweep/2))).^0.3;
         %Nicolai General Dynamics transport
-      %  Wing(4,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
+        %Wing(2,:) = 0.00428*S^0.48.*AR*Mach_sea^0.43*(W0_guess*N_z)^0.84*taper^0.14...
         % / ((100*t_c_root)^0.76*(cos(sweep/2))^1.54);
      
        % Wing_avg = (Wing(2,:)+Wing(3,:)+Wing(4,:))/3;
         
-        Wing_avg = Wing;
+        Wing_avg = (Wing(1,:));
         
         W0 = HTail+VTail+Fuse+Engine+Wing_avg+LGear+AllElse+Fuel + Payload;
         
@@ -445,7 +445,7 @@ end
      
              S_loop = Surface(ii);
              [LOD, ~,~] = Drag_Polars(S_loop,AR);
-             T_loop = round(To(ii));
+             T_loop = round(max(To(ii),max(C(:,ii))));
              [W0_loop, ~] = WeightEstimate(S_loop,T_loop,AR, taper, sweep, M_ff,LOD(3));                    
              M_ff(5) = (exp(Range*6076/((V_cruise/(sfc/60/60))*(LOD(3)))))^-1;
              M_fff = 1-(M_ff(1)*M_ff(2)*M_ff(3)*M_ff(4)*M_ff(5)*M_ff(6)*M_ff(7)*M_ff(8)*M_ff(9));
@@ -466,8 +466,8 @@ end
          
          fprintf('Design MTOW %f lbs \n', Design_MTOW);
          fprintf('Fuel Weight %f lbs \n', Fuelmin);
-         fprintf('Empty Weight %f lbs \n \n', Design_MTOW - Fuelmin);
-         fprintf('Thrust %f lbs \n', C(3,Fuelminii));
+         fprintf('Empty Weight %f lbs \n \n', (Design_MTOW - Fuelmin));
+         fprintf('Thrust %f lbs \n', max(To(ii),max(C(:,ii))));
          fprintf('Design LOD %f lbs \n', DesignLOD);
          fprintf('Refrence Area %f ft^2 \n \n', DesignS);
          
@@ -477,8 +477,8 @@ end
         fprintf('Landing Length: %f ft \n \n', Sland_final);
         
         if Plot_Graphs == 1        
-                plot(Surface(Fuelminii),To(Fuelminii), 'k+', 'LineWidth', 2);
-                text(Surface(Fuelminii)+25, To(Fuelminii)-500, 'Design Point');
+                plot(Surface(Fuelminii),max(To(Fuelminii),max(C(:,Fuelminii))), 'k+', 'LineWidth', 2);
+                text(Surface(Fuelminii)+25, max(To(Fuelminii),max(C(:,Fuelminii)))-500, 'Design Point');
                 set(gca,'XTick',200:200:TS_Xmax)
                 set(gca,'XTickLabel',200:200:TS_Xmax)
 
@@ -500,7 +500,7 @@ end
         %e depends on our different configurations during flight
         Ne = 1.5*2.5;
         f_taper = 0.0005*(1+1.5*(taper-0.6)^2);
-        %eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
+      %  eclean = ((1+0.12*M^2)*(1+(0.142+f_taper*AR*(10*t_c_root)^.33)/((cos(sweep)^2)) + 0.1*(3*Ne+1)/(4 + AR)^0.8))^-1;
        eclean = 1.78*(1-0.045*AR^0.68)-0.64;
        e =  [eclean-0.05, eclean-0.05, eclean, eclean, eclean-0.1, eclean-0.1];
        %      1              2            3       4        5            6       <- Climb #
