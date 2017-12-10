@@ -39,21 +39,12 @@ Vs      = Vsa(1)./1.688;
 Va      = Vsa(2)./1.688; 
 
 % Stall curves
-VEAS = linspace(0,Va); 
+VEAS = linspace(0,Va,1000); 
 n_up = (rho_sl.*(VEAS.*1.688).^2.*Clmax_cruise)./(2.*W./Sref);
-n_dn = linspace(0,-1,100);
+n_dn = linspace(0,-1,1000);
 V_dn     = sqrt(2*n_dn.*W./(Sref.*Clmin_cruise.*rho_sl))./1.688;
 n_s_l    = (rho_sl.*(Vs.*1.688).^2.*Clmin_cruise)./(2.*W./Sref);
-figure(1)
-hold on
-area([VEAS,Va,Vd],[n_up,2.5,2.5],'FaceColor',[0.9 0.9 0.9])
-area([V_dn,Vc,Vd],[n_dn,-1,0],'FaceColor',[0.9 0.9 0.9])
-plot(VEAS,n_up,'k',V_dn,n_dn,'k')
-plot([Va,Vd],[2.5,2.5],'k',[Vd,Vd],[2.5,0],'k',[Vd,Vc],[0,-1],'k',[Vc,V_dn(100)],[-1,-1],'k',[Vs,Vs],[1,n_s_l],'k')
-axis([0 350, -1.6 3.6])
-title('Flight Envelope at 20,000 ft MTOW','FontSize',16)
-xlabel('Air Speed (knots)','FontSize',14)
-ylabel('Loading','FontSize',14)
+
 
 % Gust lines
 c_root  = 2.*Sref./(sqrt(Sref.*AR).*(1+taper));
@@ -74,8 +65,19 @@ ngust_up = 1 + Kg.*CLa.*Ue.*Vgust./(498.*W./Sref);
 ngust_dn = 1 - Kg.*CLa.*Ue.*Vgust./(498.*W./Sref);
 Vb     = sqrt(2*ngust_up(1).*W./(Sref.*Clmax_cruise.*rho_sl))./1.688;
 Vp = [Vb; Vc; Vd];
-plot(Vp,ngust_up,'r',Vp,ngust_dn,'r')
-
+figure(1)
+hold on
+plot(VEAS(633:1000),n_up(633:1000),'k',V_dn(200:1000),n_dn(200:1000),'k')
+plot([Va,Vd],[2.5,2.5],'k',[Vd,Vd],[2.5,0],'k',[Vd,Vc],[0,-1],'k',[Vc,V_dn(1000)],[-1,-1],'k',[Vs,Vs],[1,n_s_l],'k')
+axis([0 350, -1.6 3.6])
+title('Flight Envelope at 20,000 ft MTOW','FontSize',16)
+xlabel('Air Speed (knots)','FontSize',14)
+ylabel('Loading','FontSize',14)
+plot(Vp,ngust_up,'r--',Vp,ngust_dn,'r--')
+text(Va-20,2.5,'Va')
+text(Vb-20,ngust_up(1),'Vb')
+text(Vc+10,ngust_up(2),'Vc')
+text(Vd+5,ngust_up(3),'Vd')
 W       = 40411.89;
 n_as    = [1; 2.5];
 Vsa     = sqrt(2*n_as.*W./(Sref.*Clmax_cruise.*rho_sl))/1.688;
@@ -83,9 +85,9 @@ Vs      = Vsa(1);
 Va      = Vsa(2);
 
 % Stall curves
-VEAS = linspace(0,Va); 
+VEAS = linspace(0,Va,1000); 
 n_up = (rho_sl.*(VEAS.*1.688).^2.*Clmax_cruise)./(2.*W./Sref);
-n_dn = linspace(0,-1,100);
+n_dn = linspace(0,-1,1000);
 V_dn     = sqrt(2*n_dn.*W./(Sref.*Clmin_cruise.*rho_sl))./1.688;
 n_s_l    = (rho_sl.*(Vs.*1.688).^2.*Clmin_cruise)./(2.*W./Sref);
 
@@ -97,24 +99,25 @@ B       = -Kg.*CLa.*Ub/249;
 D       = -2*W/Sref;
 Vb      = (-B+sqrt(B^2-4*A*D))/(2.*A);
 Vgust   = [Vb;Vc;Vd];
-
+plotVup = linspace(0,Vb,1000);
+plotn_up = (rho_sl.*(plotVup.*1.688).^2.*Clmax_cruise)./(2.*W./Sref);
 ngust_up = 1 + Kg.*CLa.*Ue./(498.*W./Sref).*Vgust;
 ngust_dn = 1 - Kg.*CLa.*Ue./(498.*W./Sref).*Vgust;
-arV = [VEAS,Vgust(1),Vgust'];
-arn = [n_up,n_up(100),ngust_up'];
-arVdn = [V_dn(1:66),Vgust(1),Vgust'];
-arndn = [n_dn(1:66),ngust_dn(1),ngust_dn'];
+
 figure(2)
 hold on
-area(arV,arn,'FaceColor',[0.9 0.9 0.9])
-area(arVdn,arndn,'FaceColor',[0.9 0.9 0.9])
-plot(VEAS,n_up,'k',V_dn,n_dn,'k')
-plot([Va,Vd],[2.5,2.5],'k',[Vd,Vd],[2.5,0],'k',[Vd,Vc],[0,-1],'k',[Vc,V_dn(100)],[-1,-1],'k',[Vs,Vs],[1,n_s_l],'k')
+plot([Vs,Vb],[n_s_l,ngust_dn(1)],'k')
+plot(plotVup(554:1000),plotn_up(554:1000),'k')
+plot([Vd,Vd],[ngust_up(3),ngust_dn(3)],'k',[Vs,Vs],[1,n_s_l],'k')
 plot(Vgust,ngust_up,'r',Vgust,ngust_dn,'r')
 axis([0 350, -1.6 3.6])
 title('Flight Envelope at 20,000 ft Empty','FontSize',16)
 xlabel('Air Speed (knots)','FontSize',14)
 ylabel('Loading','FontSize',14)
+text(Va-20,2.5,'Va')
+text(Vb-20,ngust_up(1),'Vb')
+text(Vc+10,ngust_up(2),'Vc')
+text(Vd+5,ngust_up(3),'Vd')
 
 function [Density, Pressure, Temperature] = Standard_Atmosphere_IMPERIAL(altitude)
     
