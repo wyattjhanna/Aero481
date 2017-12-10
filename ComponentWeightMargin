@@ -1,65 +1,97 @@
 clear
 clc
 close all
+MAC = 11.6466;
+Wdist = 53.68;
 
-cgx = [59.05421122	60.12187997	59.61945543	59.540442
-59.05421122	58.79835564	58.17512887	59.540442
-59.05421122	58.40652856	59.69662164	59.540442];
+cgx = [53.37329438	50.47992276	50.01558294	50.25983307
+53.37329438	53.21656584	52.83692727	50.25983307
+53.37329438	52.97753346	50.3186072	50.25983307];
 
-W = [36136.7, 60740.7, 61460.7, 63340.7;
-    36136.7, 36856.7, 38736.7, 63340.7;
-    36136.7, 38016.7, 62620.7, 63340.7];
+cgz = [5.10456853	3.809915658	3.783833897	3.876585256;
+5.10456853	5.106162623	5.110023944	3.876585256;
+5.10456853	5.108593832	3.858781388	3.876585256]./9.59*100;
 
+W = [33349.94 50830.94 51550.94 53430.94;
+    33349.94 34069.94 35949.94 53430.94;
+    33349.94 35229.94 52710.94 53430.94];
+np = 16.329*3.2808; % Neutral Point meters
+pmac = 100*(cgx-Wdist)/MAC;
+pnp = (np-Wdist)/MAC;
+% Neutral Point location
+wnp = linspace(30000,55000,100);
 
-% Static Margin Location
-wnp = linspace(35000,65000,100);
-npm = 18.831944; % Neutral Point meters
-np = 3.2808399*npm.*ones(size(wnp));
+np = pnp.*ones(size(wnp));
 % Landing Gear Location
-lg = 60.89*ones(size(wnp)); % Landing gear location
+lg = (55.65-Wdist)/MAC*ones(size(wnp)); % Landing gear location
 %61.89 cg15 lgx 63.66
 
 % Weight on each wheel
-move = 0;
-
 Wcgx = [cgx(1,1:3), cgx(2,2:3), cgx(3,2:4)];
-Dist = 49.21-move;
-nx = 13.39+move;
+nx = 13.39;
+Dist = 55.65-13.39;
+
 Main =100*(Wcgx-nx)./Dist;
-Nose = 100-Main;
 x = linspace(min(Wcgx),max(Wcgx),100);
 Dislimit = 90*ones(size(x));
 Dislimitu = 95*ones(size(x));
 
+
 figure(1)
 subplot(3,1,1)
-plot(cgx(1,:),W(1,:),np,wnp,'k--',lg,wnp,'k--')
-axis([57,62,35000,65000])
-title({'Order of Components Added:','E, F, C, P'})
+hold on
+plot(pmac(1,:),W(1,:),np,wnp,'k--')
+scatter(pmac(1,:),W(1,:))
+axis([-35,5,30000,55000])
+title({'Center of Gravity Z location','Order of Components Added:','E, F, C, P'},'FontSize',14)
 subplot(3,1,2)
-plot(cgx(2,:),W(2,:),np,wnp,'k--',lg,wnp,'k--')
-h = text(np(1,1)-0.05,45000,'Neutral Point');
+hold on
+plot(pmac(2,:),W(2,:),np,wnp,'k--')
+scatter(pmac(2,:),W(2,:))
+h = text(np(1,1)-1,35000,'Neutral Point');
 set(h,'rotation',90)
-g = text(lg(1,1)-0.05,47000,'Tip Back');
-set(g,'rotation',90)
-axis([57,62,35000,65000])
-title('E, C, P, F')
-ylabel({'Weight (lbs)',' ',' '})
+axis([-35,5,30000,55000])
+title('E, C, P, F','FontSize',14)
+ylabel({'Weight (lbs)',' '},'FontSize',14)
 subplot(3,1,3)
-plot(cgx(3,:),W(3,:),np,wnp,'k--',lg,wnp,'k--')
-axis([57,62,35000,65000])
-title('E, P, F, C')
-xlabel('CGx position (ft)')
-
+hold on
+plot(pmac(3,:),W(3,:),np,wnp,'k--')
+scatter(pmac(3,:),W(3,:))
+axis([-35,5,30000,55000])
+title('E, P, F, C','FontSize',14)
+xlabel('CGx position (%MAC)','FontSize',14)
 
 figure(2)
 hold on
-area(Wcgx,Main,'FaceColor',[0.9 0.9 0.9])
+plot(Wcgx,Main)
 plot(x,Dislimit,'k--')
 plot(x,Dislimitu,'k--')
 scatter(Wcgx,Main)
 axis([min(Wcgx),max(Wcgx),50,100])
-xlabel('X location (ft)')
-ylabel('Weight Percent on Wheel')
-text(59.1, 75,'Main Gear')
-text(59.1, 97,'Nose Gear')
+xlabel('X location (ft)','FontSize',14)
+ylabel('Weight Percent on Wheel','FontSize',14)
+title('Weight Supported on each Wheel Meet FAR regulations','FontSize',16)
+text(51.5, 75,'Main Gear')
+text(51.5, 97,'Nose Gear')
+
+figure(3)
+subplot(3,1,1)
+hold on
+plot(W(1,:),cgz(1,:))
+scatter(W(1,:),cgz(1,:))
+axis([30000, 55000, 0, 100])
+title({'Center of Gravity Z location','Order of Components Added:','E, F, C, P'},'FontSize',14)
+subplot(3,1,2)
+hold on
+plot(W(2,:),cgz(2,:))
+scatter(W(2,:),cgz(2,:))
+axis([30000, 55000, 0, 100])
+title('E, C, P, F','FontSize',14)
+ylabel({'CG Z-location','(% of Fuselage)',' '},'FontSize',14)
+subplot(3,1,3)
+hold on
+plot(W(3,:),cgz(3,:))
+scatter(W(3,:),cgz(3,:))
+axis([30000, 55000, 0, 100])
+title('E, P, F, C','FontSize',14)
+xlabel('Weight (lbs)','FontSize',14)
