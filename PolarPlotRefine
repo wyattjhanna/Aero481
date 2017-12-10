@@ -183,7 +183,6 @@ LDlinex = linspace(0,CD(3,idx),100);
 LDliney = LDlinex.*LoD;  
 
 plot(CD(1,:),CL(1,:),'r',CD(2,:),CL(2,:),'r--',CD(3,:),CL(3,:),'k',CD(4,:),CL(4,:),'b',CD(5,:),CL(5,:),'b--')
-CL(3,idx)
 hold on
 plot(LDlinex,LDliney,'k--')
 scatter(CD(3,idx),CL(3,idx),20,'r','filled')
